@@ -12,7 +12,10 @@ Set objFSO       = CreateObject("Scripting.FileSystemObject")
 Const ForReading = 1
 Const ForWriting = 2
 Const ForAppend  = 8
+Const Attrib_System = 4
+Const Attrib_ReadOnly = 1
 Const OverwriteExisting = TRUE
+
 intLoopControl = 0
 
 While intLoopControl <> 6 
@@ -46,7 +49,7 @@ strDestFolderName = "PST"
 
 'Criar Pasta " & strDestFolderName & " -> "\\SERVIDOR\" & strDepto & "\Usuarios\" & strUserName
 Do
-	objFSO.CreateFolder(strDestFolderPath & "\" & strDestFolderName & "")
+	Set objFolder = objFSO.CreateFolder(strDestFolderPath & "\" & strDestFolderName & "")
 Loop Until objFSO.FolderExists(strDestFolderPath & "\" & strDestFolderName & "") <> 0
 
 'Criando link target.lnk na pasta " & strDestFolderName & "
@@ -73,4 +76,7 @@ objDesktopFile.Close
 
 ' Definir que a pasta " & strDestFolderName & " terá atributos de sistema
 WshShell.Run "C:\windows\system32\attrib.exe +s " & strDestFolderPath & "\" & strDestFolderName & "", 0, TRUE
+' Set on system flag to the shortcut folder
+MsgBox "Set security properties for the folder shortcut and click OK", vbOKOnly, strTitle
+objFolder.Attributes = objFolder.Attributes + Attrib_ReadOnly + Attrib_System
 Wscript.Quit
