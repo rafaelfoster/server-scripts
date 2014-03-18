@@ -24,9 +24,15 @@ strComputerName = wshShell.ExpandEnvironmentStrings( "%COMPUTERNAME%" )
 Log_Folder = "\\SERVIDOR\COMPARTILHAMENTO\Log"
 Log_File = Log_Folder & "\Log_Shortcut_" & strUserName & ".txt"
 
-	if ( inStr(LCase(strSessionName),"rdp") <> 0 ) Then
+Set objWMIService = GetObject("winmgmts:" _
+    & "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+
+Set colItems = objWMIService.ExecQuery("Select * from Win32_TSLogonSetting")
+For Each objItem in colItems
+	If ( Len(objItem.TerminalName) <> 0 ) Then
 		Wscript.Quit
 	End If
+Next
 
 'Aguardar 1 minuto antes de iniciar
 Wscript.Sleep 60000

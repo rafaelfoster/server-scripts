@@ -34,9 +34,15 @@ Log_File = "\\SERVIDOR\COMPARTILHAMENTO\Logs\Log_userinfo_" & strUserName & ".tx
 
 Log_Header = "Data: " & date & " - " & time
 
-	if ( inStr(LCase(strSessionName),"rdp") <> 0 OR inStr(LCase(strComputerName),"ctx") <> 0 ) Then
+Set objWMIService = GetObject("winmgmts:" _
+    & "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+
+Set colItems = objWMIService.ExecQuery("Select * from Win32_TSLogonSetting")
+For Each objItem in colItems
+	If ( Len(objItem.TerminalName) <> 0 ) Then
 		Wscript.Quit
 	End If
+Next
 
 ' Aguardar 3 minutos antes de iniciar
 'Wscript.Sleep 180000
