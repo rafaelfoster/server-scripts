@@ -7,11 +7,10 @@ Sub Save_MSO_ATTACHMENTS()
     Dim Atmt As Attachment
     Dim FileName As String
     Dim i As Integer
-    
-    
-    Set ns = GetNamespace("MAPI")
-    'Set Inbox = ns.GetDefaultFolder(olFolderInbox)
-    Set Inbox = Application.ActiveExplorer.CurrentFolder
+
+	Set ns = GetNamespace("MAPI")
+    'Set Inbox = ns.GetDefaultFolder(olFolderInbox) 'Set folder manualy
+    Set Inbox = Application.ActiveExplorer.CurrentFolder ' Set folder to Current Folder
     i = 0
     sSaveAttachmentsFolder = "UNIDADE:\CAMINHO\"
      
@@ -22,17 +21,13 @@ Sub Save_MSO_ATTACHMENTS()
     End If
      
     For Each Item In Inbox.Items
-        'MsgBox "Email: " & Item.Subject
         sAttachName = Split(Item.Subject, " ", -1, vbTextCompare)
-        'MsgBox sAttachName(1)
         For Each Atmt In Item.Attachments
            sAttachExt = Split(Atmt.FileName, ".", -1, vbTextCompare)
            FileName = sSaveAttachmentsFolder & "oAttach_" & sAttachName(1) & "." & sAttachExt(1)
-           'MsgBox "File to save: " & FileName
            Atmt.SaveAsFile FileName
            i = i + 1
         Next Atmt
-        'Exit Sub
     Next Item
     
 Err_OL:
