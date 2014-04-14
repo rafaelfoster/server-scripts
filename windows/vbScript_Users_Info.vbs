@@ -1,3 +1,12 @@
+' This script generates a Log File With the Following informations:
+'
+' System information: username, Computername, LogonServer, Operational System, InstallDate
+' Licence Information: Windows and Office Serial Keys
+' Network Cards: NIC, MAC, IP, Mask, Gateway, DNS Servers, DNS Suffix
+' Mapped Network Drivers: Letters and Paths of all Mapped Network Drivers
+' Installed Printers: Printer Name, Location and Port of all printers
+' Desktop Shortcuts: Name and Destination Path of All Desktop Shortcuts
+' 
 On Error Resume Next
 ' --------------------------------------------------------------------------------------------
 ' Criação do Objeto para criação/gravação do arquivo
@@ -21,7 +30,10 @@ aOffID(3,1) = "14.0"
 aOffID(4,0) = "2013"
 aOffID(4,1) = "15.0"
 
-Const Log_Anexar = 2 '( 1 = Read, 2 = Write, 8 = Append )
+Const ForReading = 1
+Const ForWriting = 2
+Const ForAppend = 8
+Const OverwriteExisting = TRUE
 
 ' --------------------------------------------------------------------------------------------
 ' Definição de Variaveis
@@ -33,7 +45,7 @@ strSessionName = wshShell.ExpandEnvironmentStrings( "%SESSIONNAME%" )
 strComputerName = wshShell.ExpandEnvironmentStrings( "%COMPUTERNAME%" )
 strProgFiles = wshShell.ExpandEnvironmentStrings( "%PROGRAMFILES%" )
 strProgFilesx86 = wshShell.ExpandEnvironmentStrings( "%PROGRAMFILES(x86)%" )
-Log_File = "\\SERVIDOR\PASTA\Log_UserInfo_" & strUserName & ".txt" 
+Log_File = "\\SERVIDOR\COMPARTILHAMENTO\Logs\Log_UserInfo_" & strUserName & ".txt" 
 
 Log_Header = "Data: " & date & " - " & time
 
@@ -45,7 +57,7 @@ End If
 Wscript.Sleep 180000
 
 If objFSO.FileExists(Log_File) Then
-	Set objCriaLog = objFSO.OpenTextFile(Log_File, Log_Anexar, True)
+	Set objCriaLog = objFSO.OpenTextFile(Log_File, ForWriting, True)
 Else
 	Set objCriaLog = objFSO.CreateTextFile(Log_File)
 End If
