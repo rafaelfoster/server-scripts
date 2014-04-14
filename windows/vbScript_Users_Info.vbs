@@ -1,12 +1,3 @@
-' This script generates a Log File With the Following informations:
-'
-' System information: username, Computername, LogonServer, Operational System, InstallDate
-' Licence Information: Windows and Office Serial Keys
-' Network Cards: NIC, MAC, IP, Mask, Gateway, DNS Servers, DNS Suffix
-' Mapped Network Drivers: Letters and Paths of all Mapped Network Drivers
-' Installed Printers: Printer Name, Location and Port of all printers
-' Desktop Shortcuts: Name and Destination Path of All Desktop Shortcuts
-
 On Error Resume Next
 ' --------------------------------------------------------------------------------------------
 ' Criação do Objeto para criação/gravação do arquivo
@@ -17,10 +8,20 @@ Set dtmConvertedDate = CreateObject("WbemScripting.SWbemDateTime")
 Set SystemSet    = GetObject("winmgmts:").InstancesOf ("Win32_OperatingSystem") 
 
 Const HKEY_LOCAL_MACHINE = &H80000002
-Const ForReading = 1
-Const ForWriting = 2
-Const ForAppend  = 8
-Const OverwriteExisting = TRUE
+
+Dim aOffID(4,1)
+aOffID(0,0) = "XP"
+aOffID(0,1) = "10.0"
+aOffID(1,0) = "2003"
+aOffID(1,1) = "11.0"
+aOffID(2,0) = "2007"
+aOffID(2,1) = "12.0"
+aOffID(3,0) = "2010"
+aOffID(3,1) = "14.0"
+aOffID(4,0) = "2013"
+aOffID(4,1) = "15.0"
+
+Const Log_Anexar = 2 '( 1 = Read, 2 = Write, 8 = Append )
 
 ' --------------------------------------------------------------------------------------------
 ' Definição de Variaveis
@@ -30,25 +31,21 @@ strUserPath = wshShell.ExpandEnvironmentStrings( "%USERPROFILE%" )
 strLogonServer = wshShell.ExpandEnvironmentStrings( "%LOGONSERVER%" )
 strSessionName = wshShell.ExpandEnvironmentStrings( "%SESSIONNAME%" )
 strComputerName = wshShell.ExpandEnvironmentStrings( "%COMPUTERNAME%" )
-Log_File = "\\SERVIDOR\COMPARTILHAMENTO\Logs\Log_userinfo_" & strUserName & ".txt" 
+strProgFiles = wshShell.ExpandEnvironmentStrings( "%PROGRAMFILES%" )
+strProgFilesx86 = wshShell.ExpandEnvironmentStrings( "%PROGRAMFILES(x86)%" )
+Log_File = "\\SERVIDOR\PASTA\Log_UserInfo_" & strUserName & ".txt" 
 
 Log_Header = "Data: " & date & " - " & time
 
-Set objWMIService = GetObject("winmgmts:" _
-    & "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
-
-Set colItems = objWMIService.ExecQuery("Select * from Win32_TSLogonSetting")
-For Each objItem in colItems
-	If ( Len(objItem.TerminalName) <> 0 ) Then
-		Wscript.Quit
-	End If
-Next
+if ( inStr(LCase(strSessionName),"rdp") <> 0 OR inStr(LCase(strComputerName),"ctx") <> 0 ) Then
+	Wscript.Quit
+End If
 
 ' Aguardar 3 minutos antes de iniciar
-'Wscript.Sleep 180000
+Wscript.Sleep 180000
 
 If objFSO.FileExists(Log_File) Then
-	Set objCriaLog = objFSO.OpenTextFile(Log_File, ForWriting, True)
+	Set objCriaLog = objFSO.OpenTextFile(Log_File, Log_Anexar, True)
 Else
 	Set objCriaLog = objFSO.CreateTextFile(Log_File)
 End If
@@ -80,12 +77,31 @@ objCriaLog.WriteLine
 objCriaLog.WriteLine "-------[ Licence Information ]--------------------------------------------------"
 objCriaLog.WriteLine 
 
-WinKey = GetWinKey
-OfficeKeys = GetOfficeKey("10.0") & GetOfficeKey("11.0") & GetOfficeKey("12.0") & GetOfficeKey("14.0") & GetOfficeKey("15.0")
+Set oCtx = CreateObject("WbemScripting.SWbemNamedValueSet")
+oCtx.Add "__ProviderArchitecture", 64
 
-objCriaLog.WriteLine WinKey
-objCriaLog.WriteLine OfficeKeys
-objCriaLog.WriteLine
+Set oLocator = CreateObject("Wbemscripting.SWbemLocator")
+Set oReg = oLocator.ConnectServer("", "root\default", "", "", , , , oCtx).Get("StdRegProv")
+
+osType = 32
+oReg.GetStringValue HKEY_LOCAL_MACHINE, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", osProc
+If osProc = "AMD64" Then osType = 64
+
+wow = ""
+If osType = "64" Then wow = "WOW6432Node\"
+schKey97 "SOFTWARE\" & wow & "Microsoft\"
+schKey2K "Office", "SOFTWARE\" & wow & "Microsoft\Office\9.0\", Array("0000","0001","0002","0003","0004","0010","0011","0012","0013","0014","0016","0017","0018","001A","004F"), "78E1-11D2-B60F-006097C998E7"
+schKey2K "Visio", "SOFTWARE\" & wow & "Microsoft\Visio\6.0\", Array("B66F45DC"), "853B-11D3-83DE-00C04F3223C8"
+
+For a = LBound(aOffID, 1) To UBound(aOffID, 1)
+  schKey "SOFTWARE\Wow6432Node\Microsoft\Office\" & aOffID(a,1) & "\Registration", false
+  schKey "SOFTWARE\Microsoft\Office\" & aOffID(a,1) & "\Registration", true
+Next
+
+Sub writeXML(oVer,oProd,oProdID,oBit,oGUID,oInstall,oKey,oNote)
+  objCriaLog.WriteLine _
+  oProd & vbTab & vbTab & oKey
+End Sub
 
 objCriaLog.WriteLine "-------[ Network Information ]--------------------------------------------------"
 
@@ -109,6 +125,36 @@ objCriaLog.WriteLine
 For Each objItem in colItems
 	objCriaLog.WriteLine "Unidade: " & objItem.Name & " - em: " & objItem.ProviderName
 Next
+
+objCriaLog.WriteLine
+objCriaLog.WriteLine
+objCriaLog.WriteLine "-------[ Softwares em Conformidade ]--------------------------------------------"
+objCriaLog.WriteLine
+
+If (objFSO.FolderExists(strProgFiles & "\OCS Inventory Agent") ) Then
+
+	strOCSRootFolder = strProgFiles & "\OCS Inventory Agent"
+	strBinOCSInventory = strOCSRootFolder & "\OCSInventory.exe"
+	
+	if ( objFSO.FileExists(strBinOCSInventory) ) Then
+		objCriaLog.WriteLine "OCS Inventory NG: versao " & objFSO.GetFileVersion(strBinOCSInventory)
+	End If
+
+Elseif (objFSO.FolderExists(strProgFilesx86 & "\OCS Inventory Agent") ) Then
+
+	strOCSRootFolder = strProgFilesx86 & "\OCS Inventory Agent"
+	strBinOCSInventory = strOCSRootFolder & "\OCSInventory.exe"
+
+	if ( objFSO.FileExists(strBinOCSInventory) ) Then
+		objCriaLog.WriteLine "OCS Inventory NG: versao " & objFSO.GetFileVersion(strBinOCSInventory)
+	End If
+
+Else
+
+	objCriaLog.WriteLine "OCS Inventory NG: ** NAO INSTALADO **"
+	
+End If
+
 
 objCriaLog.WriteLine
 objCriaLog.WriteLine
@@ -254,84 +300,172 @@ Function GetPrinters()
 
 End Function
 
-Function GetOfficeKey(sVer)
-    On Error Resume Next
-    Dim arrSubKeys
-    Set wshShell = WScript.CreateObject( "WScript.Shell" )
-    sBit = wshShell.ExpandEnvironmentStrings("%ProgramFiles(x86)%")
-    if sBit <> "%ProgramFiles(x86)%" then
-   sBit = "Software\wow6432node"
-    else
-   sBit = "Software"
-    end if
-    Set objReg=GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\default:StdRegProv")
-    objReg.EnumKey HKEY_LOCAL_MACHINE, sBit & "\Microsoft\Office\" & sVer & "\Registration", arrSubKeys
-    Set objReg = Nothing
-    if IsNull(arrSubKeys) = False then
-        For Each Subkey in arrSubKeys
-       if lenb(other) < 1 then other = wshshell.RegRead("HKLM\" & sBit & "\Microsoft\Office\" & sVer & "\Registration\" & SubKey & "\ProductName")
-       if ucase(right(SubKey, 7)) = "0FF1CE}" then
-                Set wshshell = CreateObject("WScript.Shell")
-           key = ConvertToKey(wshshell.RegRead("HKLM\" & sBit & "\Microsoft\Office\" & sVer & "\Registration\" & SubKey & "\DigitalProductID"))
-      oem = ucase(mid(wshshell.RegRead("HKLM\" & sBit & "\Microsoft\Office\" & sVer & "\Registration\" & SubKey & "\ProductID"), 7, 3))
-        edition = wshshell.RegRead("HKLM\" & sBit & "\Microsoft\Office\" & sVer & "\Registration\" & SubKey & "\ProductName")
-      if err.number <> 0 then 
-          edition = other
-            err.clear
-      end if
-           Set wshshell = Nothing
-            'if oem <> "OEM" then oem = "Retail"
-           if lenb(final) > 1 then
-				final = final & vbnewline & final
-           else
-				final = edition & ":  " & vbTab & key 
-			end if
 
-       end if
+''--------------------------------------------------------------------------------------------------------------
+'' msofficekey 2.2.3 (13/02/2013)
+'' Plugin for OCS Inventory NG 2.x
+'' Creative Commons BY-NC-SA 3.0
+'' Nicolas DEROUET (nicolas.derouet[gmail]com)
+'On Error Resume Next
+
+' ------------------------------ 
+' SUB XML
+
+Sub schKey97(regKey)
+  oReg.GetStringValue HKEY_LOCAL_MACHINE, regKey & "Office\8.0", "BinDirPath", oDir97
+  If IsNull(oDir97) Then Exit Sub
+  oReg.GetStringValue HKEY_LOCAL_MACHINE, regKey & "Microsoft Reference\BookshelfF\96L", "PID", oProdID
+  oReg.GetStringValue HKEY_LOCAL_MACHINE, regKey & "Windows\CurrentVersion\Uninstall\Office8.0", "DisplayName", oProd
+  oInstall = "1"
+  If IsNull(oProd) Then
+    oInstall = "0"
+    oProd = "Microsoft Office 97"
+  End If
+  writeXML "97",oProd,oProdID,32,"",oInstall,"",""
+End Sub
+
+Sub schKey2K(name, regKey, guid1, guid2)
+  oProd = Null
+  oInstall = "0"
+  oReg.GetBinaryValue HKEY_LOCAL_MACHINE, regKey & "Registration\DigitalProductID", "", aDPIDBytes
+  oKey = ""
+  If Not IsNull(aDPIDBytes) Then oKey = decodeKey(aDPIDBytes)
+
+  oReg.GetStringValue HKEY_LOCAL_MACHINE, regKey & "Registration\ProductID", "", oProdID
+  If IsNull(oProdID) Then Exit Sub
+
+  oReg.EnumKey HKEY_LOCAL_MACHINE, "Software\" & wow & "Microsoft\Windows\CurrentVersion\Uninstall\", aKeys
+  If Not IsNull(aKeys) Then
+    For Each guid In aKeys
+      If UCase(Right(guid,Len(guid)-InStr(guid,"-"))) = guid2 & "}" Then
+        For i = LBound(guid1) To UBound(guid1)
+          If UCase(Left(guid,Len(guid1(i)) + 1)) = "{" & guid1(i) Then
+            oReg.GetStringValue HKEY_LOCAL_MACHINE, "Software\" & wow & "Microsoft\Windows\CurrentVersion\Uninstall\" & guid, "DisplayName", oProd
+            oGUID = guid
+            oInstall = "1"
+          End If
         Next
-   GetOfficeKey = final & vbnewline
+      End If
+    Next
+  End If
+
+  If IsNull(oProd) Then oProd = "Microsoft " & name & " 2000"
+  writeXML "2000",oProd,oProdID,32,oGUID,oInstall,oKey,""
+End Sub
+
+Sub schKey(regKey, likeOS)
+  oReg.GetBinaryValue HKEY_LOCAL_MACHINE, regKey, "DigitalProductID", aDPIDBytes
+  If IsNull(aDPIDBytes) Then
+    oReg.EnumKey HKEY_LOCAL_MACHINE, regKey, aGUIDKeys
+    If Not IsNull(aGUIDKeys) Then
+      For Each GUIDKey In aGUIDKeys
+        schKey regKey & "\" & GUIDKey, likeOS
+      Next
     End If
-End Function
+  Else
+    oVer = aOffID(a,0)
+    oProd = Null
+    oKey = decodeKey(aDPIDBytes)
+    oReg.GetStringValue HKEY_LOCAL_MACHINE, regKey, "ProductID", oProdID
+    oBit = osType
+    If Not likeOS Then oBit = 32
+    oGUID = Right(regKey,InStr(StrReverse(regKey),"\")-1)
+    oInstall = "1"
+    wow = ""
+    If Not likeOS Then wow = "WOW6432Node\"
 
-Function GetWinKey()
-    
-	Set wshshell = CreateObject("WScript.Shell")
-		edition = wshshell.RegRead("HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductName")
-		oem = ucase(mid(wshshell.RegRead("HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductID"), 7, 3))
-		key = GetKey("HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DigitalProductId")
-    
-	set wshshell = Nothing
-		'if oem <> "OEM" then oem = "Retail"
-		GetWinKey = edition & ":  " & vbTab & vbTab & vbTab & key
+    oEdit = ""
+    If (oVer = "2010" Or oVer = "2013") Then
+      For i = 280 to 320 Step 2
+        If aDPIDBytes(i) <> 0 Then oEdit = oEdit & Chr(aDPIDBytes(i))
+      Next
+    End If
+    oNote = oEdit
 
-End Function
+    If IsNull(oProd) And (oVer = "2010" Or oVer = "2013") Then
+      kEdit = UCase(oEdit)
+      If Mid(oGUID,11,4) = "003D" Then kEdit = "SingleImage"
+      oReg.GetStringValue HKEY_LOCAL_MACHINE, "Software\" & wow & "Microsoft\Windows\CurrentVersion\Uninstall\Office" & Left(aOffID(a,1),2) & "." & kEdit, "DisplayName", oProd
+    End If
 
-Function GetKey(sReg)
-    Set wshshell = CreateObject("WScript.Shell")
-    GetKey = ConvertToKey(wshshell.RegRead(sReg))
-    Set wshshell = Nothing
-End Function
+    If IsNull(oProd) Then _
+      oReg.GetStringValue HKEY_LOCAL_MACHINE, "Software\" & wow & "Microsoft\Windows\CurrentVersion\Uninstall\" & oGUID, "DisplayName", oProd
 
-Function ConvertToKey(key)
-    Const KeyOffset = 52
-    i = 28
-    Chars = "BCDFGHJKMPQRTVWXY2346789"
-    Do
-        Cur = 0
-        x = 14
-        Do
-            Cur = Cur * 256
-            Cur = key(x + KeyOffset) + Cur
-            key(x + KeyOffset) = (Cur \ 24) And 255
-            Cur = Cur Mod 24
-            x = x - 1
-        Loop While x >= 0
-        i = i - 1
-        KeyOutput = Mid(Chars, Cur + 1, 1) & KeyOutput
-        If (((29 - i) Mod 6) = 0) And (i <> -1) Then
-            i = i - 1
-            KeyOutput = "-" & KeyOutput
+    If IsNull(oProd) Then
+      oInstall = "0"
+      oReg.GetStringValue HKEY_LOCAL_MACHINE, regKey, "ProductName", oProd
+      If IsNull(oProd) Then oReg.GetStringValue HKEY_LOCAL_MACHINE, regKey, "ConvertToEdition", oProd
+
+      ' Office Visio XP
+      If IsNull(oProd) And (oVer = "XP") Then
+        oReg.GetStringValue HKEY_LOCAL_MACHINE, "Software\" & wow & "Microsoft\Office\XP\Common\ProductVersion", "LastProduct", pVer
+        ' Original / SP1 / SP2
+        If ((pVer = "10.0.525") Or (pVer = "10.1.2514") Or (pVer = "10.2.5110")) Then
+          oProd = "Microsoft Office Visio XP"
         End If
-    Loop While i >= 0
-    ConvertToKey = KeyOutput
+      End If
+
+      ' Office Visio Viewer 2003
+      If IsNull(oProd) And (oVer = "2003") And (oKey = "MF4QD-3T4PM-26X66-4KH7R-QGTYT") Then
+        oProd = "Microsoft Office Visio Viewer 2003"
+      End If
+
+      If IsNull(oProd) Then oProd = "Unidentifiable Office " & oVer
+    End If
+    writeXML oVer,oProd,oProdID,oBit,oGUID,oInstall,oKey,oNote
+  End If
+End Sub
+
+'Sub writeXML(oVer,oProd,oProdID,oBit,oGUID,oInstall,oKey,oNote)
+'  Wscript.Echo _
+'  oProd & vbTab & vbTab & oKey
+'End Sub
+
+Function decodeKey(iValues)
+  Dim arrDPID, foundKeys
+  arrDPID = Array()
+  foundKeys = Array()
+
+  Select Case (UBound(iValues))
+    Case 255:  ' 2000
+      range = Array(52,66)
+    Case 163:  ' XP, 2003, 2007
+      range = Array(52,66)
+    Case 1271: ' 2010, 2013
+      range = Array(808,822)
+    Case Else
+      Exit Function
+  End Select
+
+  charset = "BCDFGHJKMPQRTVWXY2346789"
+
+  For i = range(0) to range(1)
+    ReDim Preserve arrDPID( UBound(arrDPID) + 1 )
+    arrDPID( UBound(arrDPID) ) = iValues(i)
+  Next
+
+  withN = (arrDPID(UBound(arrDPID)) \ 6) And 1
+  arrDPID(UBound(arrDPID)) = (arrDPID(UBound(arrDPID)) And &HF7) Or ((withN And 2) * 4)
+
+  For i = 24 To 0 Step -1
+    k = 0
+    For j = 14 To 0 Step -1
+      k = k * 256 Xor arrDPID(j)
+      arrDPID(j) = k \ 24
+      k = k Mod 24
+    Next
+    strProductKey = Mid(charset, k+1, 1) & strProductKey
+  Next
+
+  If (withN = 1) Then
+    keypart = Mid(strProductKey,2,k)
+    strProductKey = Replace(strProductKey, keypart, keypart & "N", 2, 1, 0)
+    If k = 0 Then strProductKey = "N" & strProductKey
+  End If
+
+  decodeKey = ""
+  For i = 1 To 25
+    decodeKey = decodeKey & Mid(strProductKey,i,1)
+    If i Mod 5 = 0 And i <> 25 Then decodeKey = decodeKey & "-"
+  Next
 End Function
