@@ -11,20 +11,27 @@ Const SubstituirPlugins = TRUE ' [ TRUE / FALSE ]
 Set WshShell     = CreateObject("WScript.Shell")
 Set objFSO       = CreateObject("Scripting.FileSystemObject")
 
-	if ( inStr(LCase(strSessionName),"rdp") <> 0 OR inStr(LCase(strComputerName),"ctx") <> 0 OR inStr(LCase(strComputerName),"rod-") <> 0  ) Then
-		Wscript.Quit
-	End If
 
 ' Variavel que define a versão minima requerida para checagem do sistema.
 strMinVersionRequired="2.1.0.0"
 
 ' Variaveis de pastas de programas do Windows
-strProgFiles = wshShell.ExpandEnvironmentStrings( "%PROGRAMFILES%" )
+strTempFolder   = wshShell.ExpandEnvironmentStrings( "%TMP%" )
+strUserName     = wshShell.ExpandEnvironmentStrings( "%USERNAME%" )
+strComputerName = wshShell.ExpandEnvironmentStrings( "%COMPUTERNAME%" )
+strProgFiles    = wshShell.ExpandEnvironmentStrings( "%PROGRAMFILES%" )
 strProgFilesx86 = wshShell.ExpandEnvironmentStrings( "%PROGRAMFILES(x86)%" )
+
+strTempFolder   = strTempFolder & "\"
+
+	if ( inStr(LCase(strSessionName),"rdp") <> 0 OR inStr(LCase(strComputerName),"ctx") <> 0 OR inStr(LCase(strComputerName),"rod-") <> 0  ) Then
+		Wscript.Quit
+	End If
 
 ' Variaveis dos caminhos de instalação do Agente e seus plugins
 strlatestOCSInstallFile="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\ocspackage.exe"
 strOCSInstallPluginsPath="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\Plugins"
+strOCSInstallLog="\\rodrimar.com.br\TI\AD-MGT\Logs\Log_Instalacao_OCS\"
 
 ' Esta variavel passa os parametros para instalação do OCS silenciosamente (auto install)
 ' Caso esteja em branco, o programa de instalação iniciara sem nenhum parametro, a nao ser que 
@@ -66,7 +73,24 @@ End If
 Wscript.Sleep 600000
 	
 ' Executa a instalação do OCS Inventory Agent usando os parametros especificados e copia a pasta de plugins
-WshShell.Run strlatestOCSInstallFile & " " & strOCSInstallCMDArguments, 0, TRUE
+
+strOCSInstallFileName = Split(strlatestOCSInstallFile,"\",-1,1)
+For Each arrName in strOCSInstallFileName
+	strInstallFile = arrName
+Next
+
+strCurrentInstallLog = strOCSInstallLog & "log_installOCS_" & strUserName & "-(" & strComputerName & ").log"
+
+objFSO.CopyFile strlatestOCSInstallFile, strTempFolder & "\", TRUE
+WshShell.Run strTempFolder & "\" & strInstallFile & " " & strOCSInstallCMDArguments, 0, TRUE
+
+if objFSO.FileExists(strCurrentInstallLog) Then
+	objFSO.DeleteFile strCurrentInstallLog
+End If
+
+objFSO.MoveFile strTempFolder & "\" & "ocspackage.log", strCurrentInstallLog
+objFSO.DeleteFile strTempFolder & "\" & strInstallFile
+
 Result = WshShell.Run("cmd /c echo n | gpupdate /force", 0, TRUE)
 
 	If (objFSO.FolderExists(strProgFiles & "\OCS Inventory Agent") ) Then
