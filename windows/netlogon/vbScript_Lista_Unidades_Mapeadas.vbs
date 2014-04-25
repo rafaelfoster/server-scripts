@@ -5,7 +5,11 @@ Set WshShell     = CreateObject("WScript.Shell")
 Set WshNetwork   = CreateObject("WScript.Network")
 Set objFSO       = CreateObject("Scripting.FileSystemObject")
 Set SystemSet    = GetObject("winmgmts:").InstancesOf ("Win32_OperatingSystem") 
-Const Log_Anexar = 2 '( 1 = Read, 2 = Write, 8 = Append )
+
+Const ForReading = 1
+Const ForWriting = 2
+Const ForAppend  = 8
+Const OverwriteExisting = TRUE
 
 ' --------------------------------------------------------------------------------------------
 ' Definição de Variaveis
@@ -26,7 +30,7 @@ Log_Header = "Data: " & date & " - " & time & " - Computador: " & strComputerNam
 'Wscript.Sleep 180000
 
 If objFSO.FileExists(Log_File) Then
-	Set objCriaLog = objFSO.OpenTextFile(Log_File, Log_Anexar, True)
+	Set objCriaLog = objFSO.OpenTextFile(Log_File, ForWriting, True)
 Else
 	Set objCriaLog = objFSO.CreateTextFile(Log_File)
 End If
@@ -58,7 +62,7 @@ objCriaLog.WriteLine
 ' Coleta Shortcuts e URLs do usuário
 
 If objFSO.FileExists(Log_Shortcuts_File) Then
-	Set objCriaLog = objFSO.OpenTextFile(Log_Shortcuts_File, Log_Anexar, True)
+	Set objCriaLog = objFSO.OpenTextFile(Log_Shortcuts_File, ForWriting, True)
 Else
 	Set objCriaLog = objFSO.CreateTextFile(Log_Shortcuts_File)
 End If

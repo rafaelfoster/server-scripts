@@ -3,7 +3,11 @@ Set WshShell = CreateObject("Wscript.Shell")
 set WshEnv = WshShell.Environment("PROCESS")
 Set objFSO       = CreateObject("Scripting.FileSystemObject")
 Set SystemSet = GetObject("winmgmts:").InstancesOf ("Win32_OperatingSystem") 
-Const Log_Anexar = 2 '( 1 = Read, 2 = Write, 8 = Append )
+
+Const ForReading = 1
+Const ForWriting = 2
+Const ForAppend  = 8
+Const OverwriteExisting = TRUE
 
 WshEnv("SEE_MASK_NOZONECHECKS") = 1
 strUserName = wshShell.ExpandEnvironmentStrings( "%USERNAME%" )
@@ -13,7 +17,7 @@ For each System in SystemSet
 Next
 
 If objFSO.FileExists(LogFile) Then
-	Set objCriaLog = objFSO.OpenTextFile(LogFile, Log_Anexar, True)
+	Set objCriaLog = objFSO.OpenTextFile(LogFile, ForReading, True)
 Else
 	Set objCriaLog = objFSO.CreateTextFile(LogFile)
 End If

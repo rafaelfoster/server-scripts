@@ -7,6 +7,10 @@ Set objFSO       = CreateObject("Scripting.FileSystemObject")
 Set dtmConvertedDate = CreateObject("WbemScripting.SWbemDateTime")
 Set SystemSet    = GetObject("winmgmts:").InstancesOf ("Win32_OperatingSystem") 
 
+Const ForReading = 1
+Const ForWriting = 2
+Const ForAppend  = 8
+Const OverwriteExisting = TRUE
 Const HKEY_LOCAL_MACHINE = &H80000002
 
 Dim aOffID(4,1)
@@ -20,8 +24,6 @@ aOffID(3,0) = "2010"
 aOffID(3,1) = "14.0"
 aOffID(4,0) = "2013"
 aOffID(4,1) = "15.0"
-
-Const Log_Anexar = 2 '( 1 = Read, 2 = Write, 8 = Append )
 
 ' --------------------------------------------------------------------------------------------
 ' Definição de Variaveis
@@ -45,7 +47,7 @@ End If
 Wscript.Sleep 180000
 
 If objFSO.FileExists(Log_File) Then
-	Set objCriaLog = objFSO.OpenTextFile(Log_File, Log_Anexar, True)
+	Set objCriaLog = objFSO.OpenTextFile(Log_File, ForWriting, True)
 Else
 	Set objCriaLog = objFSO.CreateTextFile(Log_File)
 End If
