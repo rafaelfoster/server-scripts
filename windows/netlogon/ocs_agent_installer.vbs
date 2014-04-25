@@ -6,11 +6,14 @@
 '
 ' -------------------------------------------------------------------------------
 On error resume Next
-Const SubstituirPlugins = TRUE ' [ TRUE / FALSE ]
-
 Set WshShell     = CreateObject("WScript.Shell")
 Set objFSO       = CreateObject("Scripting.FileSystemObject")
 
+Const SubstituirPlugins = TRUE ' [ TRUE / FALSE ]
+Const ForReading = 1
+Const ForWriting = 2
+Const ForAppend  = 8
+Const OverwriteExisting = TRUE
 
 ' Variavel que define a versão minima requerida para checagem do sistema.
 strMinVersionRequired="2.1.0.0"
@@ -32,6 +35,9 @@ strTempFolder   = strTempFolder & "\"
 strlatestOCSInstallFile="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\ocspackage.exe"
 strOCSInstallPluginsPath="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\Plugins"
 strOCSInstallLog="\\rodrimar.com.br\TI\AD-MGT\Logs\Log_Instalacao_OCS\"
+
+' Define o nome do arquivo de Log
+strCurrentInstallLog = strOCSInstallLog & "log_installOCS_" & strUserName & "-(" & strComputerName & ").log"
 
 ' Esta variavel passa os parametros para instalação do OCS silenciosamente (auto install)
 ' Caso esteja em branco, o programa de instalação iniciara sem nenhum parametro, a nao ser que 
@@ -62,6 +68,16 @@ End If
 
 		' Caso o agent instalado seja maior ou igual a versão requerida, apenas os plugins são atualizados
 		If ( strCurOCSVersion >= strMinVersionRequired ) Then
+		
+			' ------------------------------------------------------------------------------------------------------------------------------------------------
+			' Inicia a geração do Arquivo de Log
+			'If objFSO.FileExists(strCurrentInstallLog) Then
+			'	Set objLogFile = objFSO.OpenTextFile(strCurrentInstallLog, ForWriting, True)
+			'Else
+			'	Set objLogFile = objFSO.CreateTextFile(strCurrentInstallLog)
+			'End If
+			'objLogFile.Writeline "OCS ja esta instalado e atualizado. "
+			'objLogFile.Writeline "Atualizando Plugins do OCS Inventory Agent"
 			cmd = strOCSInstallPluginsPath & "\*" & strOCSRootFolder & "\Plugins\"
 			Result = WshShell.Run("cmd /c echo n | gpupdate /force",0,true)
 			objFSO.CopyFile strOCSInstallPluginsPath & "\*", strOCSRootFolder & "\Plugins\", SubstituirPlugins
@@ -74,22 +90,87 @@ Wscript.Sleep 600000
 	
 ' Executa a instalação do OCS Inventory Agent usando os parametros especificados e copia a pasta de plugins
 
+' Define o nome do executavel do OCS Install
 strOCSInstallFileName = Split(strlatestOCSInstallFile,"\",-1,1)
 For Each arrName in strOCSInstallFileName
 	strInstallFile = arrName
 Next
 
-strCurrentInstallLog = strOCSInstallLog & "log_installOCS_" & strUserName & "-(" & strComputerName & ").log"
+' -------------------------------------------------------------------------------
+' Tenta parar o servico do OCS para iniciar a instalacao
+strComputerName = "."
+ Set objWMIService = GetObject("winmgmts:" _ 
+	& "{impersonationLevel=impersonate}!\\" & strComputerName & "\root\cimv2") 
 
+Set colServices = objWMIService.ExecQuery _ 
+	("Select * from Win32_Service") 
+	
+For Each Service in colServices
+	if instr(Service.Name,"OCS") > 0 Then
+
+		strOCSServiceMSG = "Servico " & Service.Name & " detectado." & vbCrlf & vbCr & _
+						   "Tentando finalizar o servico...."
+
+		if instr(Service.State,"Running") > 0 Then
+			strServiceStopStatusCOD = Service.StopService()
+		End If
+
+		Select Case strServiceStopStatusCOD
+			Case 0 
+				strServiceStopStatusMSG = "SUCCESS!"
+			Case 1 
+				strServiceStopStatusMSG = "NOT SUPPORTED"
+			Case 2 
+				strServiceStopStatusMSG = "PERMISSION DENIED"
+			Case 3 
+				strServiceStopStatusMSG = "ERROR: DEPENDENTS SERVICES ARE RUNNING"
+			Case 4 
+				strServiceStopStatusMSG = "CANNONT SEND STOP CONTROL CODE TO SERVICE"
+			Case 5 
+				strServiceStopStatusMSG = "REQUEST CODE INVALID"
+			Case 6 
+				strServiceStopStatusMSG = "SERVICE NOT STARTED"
+			Case 7 
+				strServiceStopStatusMSG = "SERVICE NOT RESPONDING"
+			Case 8 
+				strServiceStopStatusMSG = "UNKNOWN ERROR ON START SERVICE"
+			Case 9
+				strServiceStopStatusMSG = "EXECUTABLE PATH NOT FOUNDED"
+			Case 10 
+				strServiceStopStatusMSG = "UNKNOWN ERROR ON START SERVICE"
+			Case 11
+				strServiceStopStatusMSG = "UNKNOWN ERROR ON START SERVICE"
+		End Select
+
+		strOCSServiceMSG = strOCSServiceMSG & " " & strServiceStopStatusMSG
+
+	End if
+Next
+
+' Copia o arquivo do OCS para a pasta %TEMP% do usuário e executa-o com os parametros definidos em 'strOCSInstallCMDArguments'
 objFSO.CopyFile strlatestOCSInstallFile, strTempFolder & "\", TRUE
 WshShell.Run strTempFolder & "\" & strInstallFile & " " & strOCSInstallCMDArguments, 0, TRUE
 
-if objFSO.FileExists(strCurrentInstallLog) Then
-	objFSO.DeleteFile strCurrentInstallLog
+' Caso o arquivo de log ja exista, substitui o mesmo
+objFSO.CopyFile strTempFolder & "\" & "ocspackage.log", strCurrentInstallLog, TRUE
+
+Set objOCSLogFile = objFSO.OpenTextFile(strTempFolder & "\" & "ocspackage.log", ForReading, True)
+strFileContent = objOCSLogFile.ReadAll
+
+' ------------------------------------------------------------------------------------------------------------------------------------------------
+' Inicia a geração do Arquivo de Log
+If objFSO.FileExists(strCurrentInstallLog) Then
+	Set objLogFile = objFSO.OpenTextFile(strCurrentInstallLog, ForWriting, True)
+Else
+	Set objLogFile = objFSO.CreateTextFile(strCurrentInstallLog)
 End If
 
-objFSO.MoveFile strTempFolder & "\" & "ocspackage.log", strCurrentInstallLog
+objLogFile.Write strOCSServiceMSG
+objLogFile.Writeline " " 
+objLogFile.Write strFileContent
+
 objFSO.DeleteFile strTempFolder & "\" & strInstallFile
+objFSO.DeleteFile strTempFolder & "\" & "ocspackage.log"
 
 Result = WshShell.Run("cmd /c echo n | gpupdate /force", 0, TRUE)
 
