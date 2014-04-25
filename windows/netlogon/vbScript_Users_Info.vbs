@@ -7,6 +7,10 @@ Set objFSO       = CreateObject("Scripting.FileSystemObject")
 Set dtmConvertedDate = CreateObject("WbemScripting.SWbemDateTime")
 Set SystemSet    = GetObject("winmgmts:").InstancesOf ("Win32_OperatingSystem") 
 
+
+
+
+
 Const ForReading = 1
 Const ForWriting = 2
 Const ForAppend  = 8
