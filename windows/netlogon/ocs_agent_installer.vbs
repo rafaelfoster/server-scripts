@@ -86,6 +86,7 @@ End If
 
 	End If
 
+' Aguarda 10 minutos antes de continuar
 Wscript.Sleep 600000
 	
 ' Executa a instalação do OCS Inventory Agent usando os parametros especificados e copia a pasta de plugins
