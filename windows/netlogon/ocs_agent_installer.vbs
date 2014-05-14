@@ -7,13 +7,20 @@
 ' -------------------------------------------------------------------------------
 On error resume Next
 Set WshShell     = CreateObject("WScript.Shell")
+Set objRegEx     = CreateObject("VBScript.RegExp")
 Set objFSO       = CreateObject("Scripting.FileSystemObject")
 
-Const SubstituirPlugins = TRUE ' [ TRUE / FALSE ]
 Const ForReading = 1
 Const ForWriting = 2
 Const ForAppend  = 8
 Const OverwriteExisting = TRUE
+Const SubstituirPlugins = TRUE ' [ TRUE / FALSE ]
+
+' -------------------------------------------------
+' Definição do Regex 
+objRegEx.Global = True
+objRegEx.IgnoreCase = True
+objRegEx.Pattern = "WS-(\d+)$"
 
 ' Variavel que define a versão minima requerida para checagem do sistema.
 strMinVersionRequired="2.1.0.0"
@@ -33,11 +40,12 @@ strTempFolder   = strTempFolder & "\"
 
 ' Variaveis dos caminhos de instalação do Agente e seus plugins
 strlatestOCSInstallFile="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\ocspackage.exe"
+strlatestOCSDefaultInstallFile="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\ocspackage_default.exe"
 strOCSInstallPluginsPath="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\Plugins"
 strOCSInstallLog="\\rodrimar.com.br\TI\AD-MGT\Logs\Log_Instalacao_OCS\"
 
 ' Define o nome do arquivo de Log
-strCurrentInstallLog = strOCSInstallLog & "log_installOCS_" & strUserName & "-(" & strComputerName & ").log"
+strCurrentInstallLog = strOCSInstallLog & "log_installOCS_" & "(" & strComputerName & ").log"
 
 ' Esta variavel passa os parametros para instalação do OCS silenciosamente (auto install)
 ' Caso esteja em branco, o programa de instalação iniciara sem nenhum parametro, a nao ser que 
@@ -45,14 +53,14 @@ strCurrentInstallLog = strOCSInstallLog & "log_installOCS_" & strUserName & "-("
 
 ' Esta é a linha de comando padrao para uma instalacao silenciosa
 ' strOCSInstallCMDArguments="/S /NOSPLASH /UPGRADE /NO_SYSTRAY /NOW /SERVER=http://servidor_ocs/ocsinventory /user=usuario_ocs /PWD=senha_do_ocs /TAG=123456789"
-strOCSInstallCMDArguments=""
+strOCSInstallCMDArguments="/S /NOSPLASH /UPGRADE /NO_SYSTRAY /NOW /SERVER=http://ocs.rodrimar.com.br/ocsinventory /user=ocs /PWD=r0dr!m@rocs"
 
 ' --------------------------------------------------------------------------------------------------------------
 ' Verificar se o diretorio de instalacao padrao OCS existe
 
-If (objFSO.FolderExists(strProgFiles & "\OCS Inventory Agent") ) Then
+If (objFSO.FileExists(strProgFiles & "\OCS Inventory Agent\OCSInventory.exe") ) Then
 	strOCSRootFolder = strProgFiles & "\OCS Inventory Agent"
-Elseif (objFSO.FolderExists(strProgFilesx86 & "\OCS Inventory Agent") ) Then
+Elseif (objFSO.FileExists(strProgFilesx86 & "\OCS Inventory Agent\OCSInventory.exe") ) Then
 	strOCSRootFolder = strProgFilesx86 & "\OCS Inventory Agent"
 End If
 
@@ -68,34 +76,30 @@ End If
 
 		' Caso o agent instalado seja maior ou igual a versão requerida, apenas os plugins são atualizados
 		If ( strCurOCSVersion >= strMinVersionRequired ) Then
-		
-			' ------------------------------------------------------------------------------------------------------------------------------------------------
-			' Inicia a geração do Arquivo de Log
-			'If objFSO.FileExists(strCurrentInstallLog) Then
-			'	Set objLogFile = objFSO.OpenTextFile(strCurrentInstallLog, ForWriting, True)
-			'Else
-			'	Set objLogFile = objFSO.CreateTextFile(strCurrentInstallLog)
-			'End If
-			'objLogFile.Writeline "OCS ja esta instalado e atualizado. "
-			'objLogFile.Writeline "Atualizando Plugins do OCS Inventory Agent"
 			cmd = strOCSInstallPluginsPath & "\*" & strOCSRootFolder & "\Plugins\"
 			Result = WshShell.Run("cmd /c echo n | gpupdate /force",0,true)
 			objFSO.CopyFile strOCSInstallPluginsPath & "\*", strOCSRootFolder & "\Plugins\", SubstituirPlugins
+			
+			' Verifica se o Client possui alguma TAG definida
+			If objRegEx.Test( strComputerName ) Then
+
+				BP = Split(strComputerName,"-")
+				For each BPPat in BP	
+					strPatrimonio = BPPat
+				Next
+
+				Wscript.Run strBinOCSInventory & " /NOW " & "/TAG=""" & strPatrimonio & """"
+
+			End If
+
 			Wscript.Quit
 		End If
 
 	End If
 
-' Aguarda 10 minutos antes de continuar
 Wscript.Sleep 600000
 	
 ' Executa a instalação do OCS Inventory Agent usando os parametros especificados e copia a pasta de plugins
-
-' Define o nome do executavel do OCS Install
-strOCSInstallFileName = Split(strlatestOCSInstallFile,"\",-1,1)
-For Each arrName in strOCSInstallFileName
-	strInstallFile = arrName
-Next
 
 ' -------------------------------------------------------------------------------
 ' Tenta parar o servico do OCS para iniciar a instalacao
@@ -105,11 +109,14 @@ strComputerName = "."
 
 Set colServices = objWMIService.ExecQuery _ 
 	("Select * from Win32_Service") 
-	
+
+strCurOCSVersion = objFSO.GetFileVersion(strBinOCSInventory)
+
 For Each Service in colServices
 	if instr(Service.Name,"OCS") > 0 Then
 
-		strOCSServiceMSG = "Servico " & Service.Name & " detectado." & vbCrlf & vbCr & _
+		strOCSServiceMSG = "Versao atual do OCS: " & strCurOCSVersion & vbCrlf & vbCr & _
+						   "Servico " & Service.Name & " detectado." & vbCrlf & vbCr & _
 						   "Tentando finalizar o servico...."
 
 		if instr(Service.State,"Running") > 0 Then
@@ -148,8 +155,26 @@ For Each Service in colServices
 	End if
 Next
 
+If objRegEx.Test( strComputerName ) Then
+	BP = Split(strComputerName,"-")
+	For each BPPat in BP	
+		strPatrimonio = BPPat
+	Next
+	strOCSInstallBin = strlatestOCSDefaultInstallFile
+	strOCSInstallArgs = strOCSInstallCMDArguments & "/TAG=" & strPatrimonio
+Else
+	strOCSInstallBin = strlatestOCSInstallFile
+	strOCSInstallArgs = ""
+End If
+
+' Define o nome do executavel do OCS Install
+strOCSInstallFileName = Split(strOCSInstallBin,"\",-1,1)
+For Each arrName in strOCSInstallFileName
+	strInstallFile = arrName
+Next
+
 ' Copia o arquivo do OCS para a pasta %TEMP% do usuário e executa-o com os parametros definidos em 'strOCSInstallCMDArguments'
-objFSO.CopyFile strlatestOCSInstallFile, strTempFolder & "\", TRUE
+objFSO.CopyFile strOCSInstallBin, strTempFolder & "\", TRUE
 WshShell.Run strTempFolder & "\" & strInstallFile & " " & strOCSInstallCMDArguments, 0, TRUE
 
 ' Caso o arquivo de log ja exista, substitui o mesmo
