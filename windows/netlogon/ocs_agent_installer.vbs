@@ -9,6 +9,7 @@ On error resume Next
 Set WshShell     = CreateObject("WScript.Shell")
 Set objRegEx     = CreateObject("VBScript.RegExp")
 Set objFSO       = CreateObject("Scripting.FileSystemObject")
+Set SystemSet    = GetObject("winmgmts:").InstancesOf ("Win32_OperatingSystem") 
 
 Const ForReading = 1
 Const ForWriting = 2
@@ -20,7 +21,7 @@ Const SubstituirPlugins = TRUE ' [ TRUE / FALSE ]
 ' Definição do Regex 
 objRegEx.Global = True
 objRegEx.IgnoreCase = True
-objRegEx.Pattern = "WS-(\d+)$"
+objRegEx.Pattern = "\-\d{5,6}$"
 
 ' Variavel que define a versão minima requerida para checagem do sistema.
 strMinVersionRequired="2.1.0.0"
@@ -34,9 +35,13 @@ strProgFilesx86 = wshShell.ExpandEnvironmentStrings( "%PROGRAMFILES(x86)%" )
 
 strTempFolder   = strTempFolder & "\"
 
-	if ( inStr(LCase(strSessionName),"rdp") <> 0 OR inStr(LCase(strComputerName),"ctx") <> 0 OR inStr(LCase(strComputerName),"rod-") <> 0  ) Then
-		Wscript.Quit
-	End If
+For each System in SystemSet 
+	SysVersion     = System.Caption & " SP" & System.ServicePackMajorVersion & " " & System.BuildNumber
+Next
+
+if ( inStr(LCase(SysVersion),"server") <> 0 ) Then
+	Wscript.Quit
+End If
 
 ' Variaveis dos caminhos de instalação do Agente e seus plugins
 strlatestOCSInstallFile="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\ocspackage.exe"
@@ -57,6 +62,15 @@ strOCSInstallCMDArguments="/S /NOSPLASH /UPGRADE /NO_SYSTRAY /NOW /SERVER=http:/
 
 ' --------------------------------------------------------------------------------------------------------------
 ' Verificar se o diretorio de instalacao padrao OCS existe
+
+' Verifica se o Client possui alguma TAG definida
+If objRegEx.Test( strComputerName ) Then
+
+	BP = Split(strComputerName,"-")
+	For each BPPat in BP	
+		strPatrimonio = BPPat
+	Next
+End If
 
 If (objFSO.FileExists(strProgFiles & "\OCS Inventory Agent\OCSInventory.exe") ) Then
 	strOCSRootFolder = strProgFiles & "\OCS Inventory Agent"
@@ -80,17 +94,8 @@ End If
 			Result = WshShell.Run("cmd /c echo n | gpupdate /force",0,true)
 			objFSO.CopyFile strOCSInstallPluginsPath & "\*", strOCSRootFolder & "\Plugins\", SubstituirPlugins
 			
-			' Verifica se o Client possui alguma TAG definida
-			If objRegEx.Test( strComputerName ) Then
-
-				BP = Split(strComputerName,"-")
-				For each BPPat in BP	
-					strPatrimonio = BPPat
-				Next
-
-				Wscript.Run strBinOCSInventory & " /NOW " & "/TAG=""" & strPatrimonio & """"
-
-			End If
+			' Adicionar TAG
+			Wscript.Run strBinOCSInventory & " /NOW " & "/TAG=""" & strPatrimonio & """"
 
 			Wscript.Quit
 		End If
