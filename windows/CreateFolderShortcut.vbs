@@ -7,7 +7,7 @@ Const OverwriteExisting = TRUE
 Const Attrib_ReadOnly = 1
 Const Attrib_System = 4
 
-' --------------------------------------------------------------------------------------------
+' ----------------------------------------------------------------------------------------------
 ' Create instance to handle filesystem files
 Set WshShell = CreateObject("WScript.Shell")
 Set objFSO = CreateObject("Scripting.FileSystemObject")
