@@ -1,0 +1,88 @@
+===== Login em servidores Linux utilizando as credenciais do Active Directory  =====
+//(Obs.: Este procedimento foi testado em sistemas baseados no Red Hat versões 6 e 7)//
+
+====  1. Instalação dos pacotes necessários ====
+
+  # yum install samba-common samba-winbind pam_krb5 sudo authconfig samba-winbind-clients
+
+====  2. Verificar o FQDN do servidor (deve conter o .EXAMPLE.com.br ao final do nome) ====
+
+  # hostname -f 
+
+====  3. Criar diretório base das pastas de usuários do domínio ====
+
+  # mkdir /home/EXAMPLE
+
+====  4. Gerar arquivo de configurações do samba com o domínio requerido. ====
+
+
+  # authconfig  \
+    --disablecache  \
+    --enablewinbind  \
+    --enablewinbindauth  \
+    --smbsecurity=ads  \
+    --smbworkgroup=EXAMPLE  \
+    --smbrealm=EXAMPLE.COM.BR  \
+    --enablewinbindusedefaultdomain  \
+    --winbindtemplatehomedir=/home/EXAMPLE/%U  \
+    --winbindtemplateshell=/bin/bash  \
+    --enablekrb5  \
+    --krb5realm=EXAMPLE.COM.BR  \
+    --enablekrb5kdcdns  \
+    --enablekrb5realmdns  \
+    --enablelocauthorize  \
+    --enablemkhomedir  \
+    --enablepamaccess  \
+    --updateall \
+    --nostart 
+ 
+==== 5. Inserir o servidor no Domínio ====
+
+  # net join -w EXAMPLE.COM.BR -S dc1.EXAMPLE.com.br -U $username
+====  6. Permitir acesso ao grupo Admin para acessar via sudo ====
+
+  # echo "%LGN_SERVERS_SSH_INFRA ALL=(ALL) ALL" >> /etc/sudoers
+
+====  7. Editar o arquivo de autenticação (PAM) para permitir e restringir o acesso aos usuários do domínio. ====
+
+  # vi /etc/pam.d/password-auth
+  
+    #%PAM-1.0
+    # This file is auto-generated.
+    # User changes will be destroyed the next time authconfig is run.
+    auth        required      pam_env.so
+    auth        sufficient    pam_unix.so nullok try_first_pass
+    auth        requisite     pam_succeed_if.so user ingroup EXAMPLE\LGN_SERVERS_SSH_INFRA debug
+    [...]
+    
+Ou utilize o seguinte comando:
+
+   sed -i -e "s/pam_unix.so nullok try_first_pass/pam_unix.so nullok try_first_pass\nauth        requisite     pam_succeed_if.so user ingroup EXAMPLE\\\GRUPO_SERVERS_SSH_INFRA debug/g" /etc/pam.d/password-auth
+
+====  7. Remover o acesso do usuário root por SSH ====
+
+  # vi /etc/ssh/sshd_config
+  Modifique a linha "#PermitRootLogin yes" para "PermitRootLogin no"
+
+Ou utilize o comando abaixo:
+  
+  sed -i -e "s/\(^.\)\(PermitRootLogin\) \([a-zA-Z]*\)/\2 no/g" /etc/ssh/sshd_config
+
+====  8. Reiniciar serviço SSH ====
+
+  # Sistemas usando systemd
+  systemctl restart sshd
+  
+
+  # Sistemas usando init.d
+  /etc/init.d/sshd restart
+  
+====  9. Reiniciar serviço Winbind ====
+
+
+  # Sistemas usando systemd
+  systemctl restart winbind
+  
+
+  # Sistemas usando init.d
+  /etc/init.d/winbind restart
