@@ -49,7 +49,11 @@ Log_File = "\\SERVIDOR\COMPARTILHAMENTO\Logs\Log_UserInfo_" & strUserName & ".tx
 
 Log_Header = "Data: " & date & " - " & time
 
-if ( inStr(LCase(strSessionName),"rdp") <> 0 OR inStr(LCase(strComputerName),"ctx") <> 0 ) Then
+For each System in SystemSet 
+	SysVersion     = System.Caption & " SP" & System.ServicePackMajorVersion & " " & System.BuildNumber
+Next
+
+if ( inStr(LCase(SysVersion),"server") <> 0 ) Then
 	Wscript.Quit
 End If
 
@@ -69,6 +73,16 @@ For each System in SystemSet
 	SysInstallDate = dtmInstallDate
 Next
 
+' Get System TAG from Win32_BIOS.SerialNumber
+Set objWMIService = GetObject("winmgmts:" _
+    & "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+
+Set colBIOS = objWMIService.ExecQuery _
+    ("Select * from Win32_BIOS")
+
+For each objBIOS in colBIOS
+    strServiceTag = objBIOS.SerialNumber
+Next
 objCriaLog.WriteLine "-------------------------------------------------------------------------------------------------------"
 objCriaLog.WriteLine Log_Header
 objCriaLog.WriteLine
@@ -83,6 +97,7 @@ objCriaLog.WriteLine "Estacao de Trabalho   : " & strComputerName
 objCriaLog.WriteLine "Servidor de Logon     : " & strLogonServer
 objCriaLog.WriteLine "Sistema Operacional   : " & SysVersion
 objCriaLog.WriteLine "Data de Instalacao    : " & SysInstallDate
+objCriaLog.WriteLine "Service TAG           : " & strServiceTag
 objCriaLog.WriteLine
 objCriaLog.WriteLine
 
@@ -115,6 +130,7 @@ Sub writeXML(oVer,oProd,oProdID,oBit,oGUID,oInstall,oKey,oNote)
   oProd & vbTab & vbTab & oKey
 End Sub
 
+objCriaLog.WriteLine
 objCriaLog.WriteLine "-------[ Network Information ]--------------------------------------------------"
 
 NetCardInformations = split(GetNetworkInformation(),";")
@@ -143,6 +159,7 @@ objCriaLog.WriteLine
 objCriaLog.WriteLine "-------[ Softwares em Conformidade ]--------------------------------------------"
 objCriaLog.WriteLine
 
+objCriaLog.Write "OCS Inventory NG: "
 If (objFSO.FolderExists(strProgFiles & "\OCS Inventory Agent") ) Then
 
 	strOCSRootFolder = strProgFiles & "\OCS Inventory Agent"
@@ -150,6 +167,8 @@ If (objFSO.FolderExists(strProgFiles & "\OCS Inventory Agent") ) Then
 	
 	if ( objFSO.FileExists(strBinOCSInventory) ) Then
 		objCriaLog.WriteLine "OCS Inventory NG: versao " & objFSO.GetFileVersion(strBinOCSInventory)
+	Else 
+		objCriaLog.Write "File not found!"
 	End If
 
 Elseif (objFSO.FolderExists(strProgFilesx86 & "\OCS Inventory Agent") ) Then
@@ -159,14 +178,14 @@ Elseif (objFSO.FolderExists(strProgFilesx86 & "\OCS Inventory Agent") ) Then
 
 	if ( objFSO.FileExists(strBinOCSInventory) ) Then
 		objCriaLog.WriteLine "OCS Inventory NG: versao " & objFSO.GetFileVersion(strBinOCSInventory)
+	Else
+		objCriaLog.Write "File not found!"
 	End If
 
 Else
-
 	objCriaLog.WriteLine "OCS Inventory NG: ** NAO INSTALADO **"
 	
 End If
-
 
 objCriaLog.WriteLine
 objCriaLog.WriteLine
