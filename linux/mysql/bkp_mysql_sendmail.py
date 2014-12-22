@@ -101,7 +101,7 @@ for dbname in dblist:
 				gid = grp.getgrnam(fGroupid).gr_gid
 				os.chown(fdbname_zip, uid, gid )
 			else:
-				msg = msg + "<tr><td colspan='3'>  Backup file not found! </td></tr>"
+				msg = msg + "<tr><td> %s </td><td colspan='2'>  Backup file not found! </td></tr>" % (dbname)
 				continue
 
 			dbsize = convertSize(fgetsize)
