@@ -7,6 +7,7 @@ import pwd
 import gzip
 import math
 import time
+import hashlib
 import smtplib
 import datetime
 from subprocess import Popen, PIPE
@@ -17,8 +18,6 @@ db_password  = "a_very_secure_password"
 db_hostname  = "db-server.example.com"
 db_bkp_path  = "/var/backups/mysql/%s" % (db_hostname)
 db_exeption  = "Database" # To add more Databases to filter (it means, to not make backup of it) use the pipe '|' and the name of another db. Ex: Database|mysql|dbname
-
-
 # SMTP Settings
 smtp_sender      = "bkp-mysql@example.com"
 smtp_receivers   = "destination@example.com" # or a list ['user1@example.com', 'user2@example.com']
@@ -27,7 +26,6 @@ smtp_receivers   = "destination@example.com" # or a list ['user1@example.com', '
 smtp_server_addr = "smtp.example.com"
 smtp_server_port = "25"
 smtp_server_tls  = False # or True (with the first capital letter)
-
 # User and group that will owner the Backup file
 fUserid  = "user"
 fGroupid = "group"
@@ -69,6 +67,9 @@ msg = msg + """<html>
 	   <td>
 		 <b>Size</b>
 	   </td>
+		<td>
+		 <b>SHA1</b>
+	   </td>
 	   <td>
 		 <b>Time</b>
 	   </td>
@@ -79,6 +80,15 @@ def convertSize(size):
 	size = ( size / 1024 ) 
 	return "%s %s" % (size, "Kb")
 
+def getHash(db_filename):
+	BLOCKSIZE = 65536
+	hasher = hashlib.sha1()
+	with open(db_filename, 'rb') as afile:
+		buf = afile.read(BLOCKSIZE)
+		while len(buf) > 0:
+			hasher.update(buf)
+			buf = afile.read(BLOCKSIZE)
+	return hasher.hexdigest()
 for dbname in dblist:
 	if dbname: 
 		fdbname_zip = dbname + ".sql.gz"
@@ -100,6 +110,7 @@ for dbname in dblist:
 				uid = pwd.getpwnam(fUserid).pw_uid
 				gid = grp.getgrnam(fGroupid).gr_gid
 				os.chown(fdbname_zip, uid, gid )
+				dbsha1sum = getHash(fdbname_zip)
 			else:
 				msg = msg + "<tr><td> %s </td><td colspan='2'>  Backup file not found! </td></tr>" % (dbname)
 				continue
@@ -118,7 +129,7 @@ for dbname in dblist:
 					<td align='right'> %s </td>
 					<td> %s </td>
 				</tr>
-				""" % (dbname, dbsize, timespend)
+				""" % (dbname, dbsize, dbsha1sum, timespend)
 
 		except IOError as err:
 			print "Error: %s" % (err)
