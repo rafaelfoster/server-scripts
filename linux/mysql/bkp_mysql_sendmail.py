@@ -18,6 +18,7 @@ db_password  = "a_very_secure_password"
 db_hostname  = "db-server.example.com"
 db_bkp_path  = "/var/backups/mysql/%s" % (db_hostname)
 db_exeption  = "Database" # To add more Databases to filter (it means, to not make backup of it) use the pipe '|' and the name of another db. Ex: Database|mysql|dbname
+
 # SMTP Settings
 smtp_sender      = "bkp-mysql@example.com"
 smtp_receivers   = "destination@example.com" # or a list ['user1@example.com', 'user2@example.com']
@@ -26,6 +27,7 @@ smtp_receivers   = "destination@example.com" # or a list ['user1@example.com', '
 smtp_server_addr = "smtp.example.com"
 smtp_server_port = "25"
 smtp_server_tls  = False # or True (with the first capital letter)
+
 # User and group that will owner the Backup file
 fUserid  = "user"
 fGroupid = "group"
@@ -44,9 +46,10 @@ dblist = re.split("\s+", dbs)
 jobStartTime = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
 
 msg = """From: Backup Mysql <%s>
+To: <%s>
 MIME-Version: 1.0
 Subject: [Backup Mysql] - Mysql backup report
-Content-type: text/html""" % (smtp_sender)
+Content-type: text/html""" % (smtp_sender, smtp_receivers)
 
 msg = msg + """<html>
 	<head>
