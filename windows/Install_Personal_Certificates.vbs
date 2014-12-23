@@ -16,8 +16,8 @@ strUserPath = wshShell.ExpandEnvironmentStrings( "%USERPROFILE%" )
 strSessionName = wshShell.ExpandEnvironmentStrings( "%SESSIONNAME%" )
 strComputerName = wshShell.ExpandEnvironmentStrings( "%COMPUTERNAME%" )
 
-strRepoBase = "\\rodrimar.com.br\ti\AD-MGT\scripts\repositories\certificados"
-Log_Folder = "\\rodrimar.com.br\Ti\AD-MGT\Logs\Log_InstalacaoCertificado"
+strRepoBase = "\\server.com.br\FOLDER\scripts\repositories\certificados"
+Log_Folder  = "\\server.com.br\FOLDER\Logs\Log_InstalacaoCertificado"
 Log_File = Log_Folder & "\Log_Certificado_" & strUserName & ".txt"
 
 'Aguardar 1 minuto antes de iniciar
