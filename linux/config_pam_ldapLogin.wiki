@@ -17,24 +17,24 @@
 
 
   # authconfig  \
-    --disablecache  \
-    --enablewinbind  \
-    --enablewinbindauth  \
-    --smbsecurity=ads  \
-    --smbworkgroup=EXAMPLE  \
-    --smbrealm=EXAMPLE.COM.BR  \
-    --enablewinbindusedefaultdomain  \
-    --winbindtemplatehomedir=/home/EXAMPLE/%U  \
-    --winbindtemplateshell=/bin/bash  \
-    --enablekrb5  \
-    --krb5realm=EXAMPLE.COM.BR  \
-    --enablekrb5kdcdns  \
-    --enablekrb5realmdns  \
-    --enablelocauthorize  \
-    --enablemkhomedir  \
-    --enablepamaccess  \
-    --updateall \
-    --nostart 
+  --disablecache  \
+  --enablewinbind  \
+  --enablewinbindauth  \
+  --smbsecurity=ads  \
+  --smbworkgroup=EXAMPLE  \
+  --smbrealm=EXAMPLE.COM.BR  \
+  --enablewinbindusedefaultdomain  \
+  --winbindtemplatehomedir=/home/EXAMPLE/%U  \
+  --winbindtemplateshell=/bin/bash  \
+  --enablekrb5  \
+  --krb5realm=EXAMPLE.COM.BR  \
+  --enablekrb5kdcdns  \
+  --enablekrb5realmdns  \
+  --enablelocauthorize  \
+  --enablemkhomedir  \
+  --enablepamaccess  \
+  --updateall \
+  --nostart 
  
 ==== 5. Inserir o servidor no Domínio ====
 
