@@ -71,17 +71,14 @@ Ou utilize o comando abaixo:
 
     # Sistemas usando systemd
     systemctl restart sshd
-  
 
     # Sistemas usando init.d
     /etc/init.d/sshd restart
-  
-====  9. Reiniciar serviço Winbind ====
 
+====  9. Reiniciar serviço Winbind ====
 
     # Sistemas usando systemd
     systemctl restart winbind
-  
 
     # Sistemas usando init.d
     /etc/init.d/winbind restart
