@@ -1,3 +1,4 @@
+
 #!/usr/bin/python
 
 import os
@@ -32,52 +33,122 @@ smtp_server_tls  = False # or True (with the first capital letter)
 fUserid  = "user"
 fGroupid = "group"
 
-if not os.path.exists(db_bkp_path):
-    os.makedirs(db_bkp_path)
+def main():
 
-os.chdir(db_bkp_path)
+	if not os.path.exists(db_bkp_path):
+		os.makedirs(db_bkp_path)
 
-cmd_mysql_listdb = ['mysql','-h', db_hostname, '-u', db_username, '-p' + db_password, '-e', 'SHOW DATABASES;']
-p1 = Popen(cmd_mysql_listdb, stdout=PIPE)
-p2 = Popen(['grep','-viE', db_exeption], stdin=p1.stdout, stdout=PIPE)
-dbs = p2.communicate()[0]
-dblist = re.split("\s+", dbs)
+	os.chdir(db_bkp_path)
 
-jobStartTime = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+	cmd_mysql_listdb = ['mysql','-h', db_hostname, '-u', db_username, '-p' + db_password, '-e', 'SHOW DATABASES;']
+	p1 = Popen(cmd_mysql_listdb, stdout=PIPE, stderr=PIPE)
+	p2 = Popen(['grep','-viE', db_exeption], stdin=p1.stdout, stdout=PIPE, stderr=PIPE)
+	dbs = p2.communicate()[0]
 
-msg = """From: Backup Mysql <%s>
-To: <%s>
-MIME-Version: 1.0
-Subject: [Backup Mysql] - Mysql backup report
-Content-type: text/html""" % (smtp_sender, smtp_receivers)
+	p1_error = p1.stderr.read()
 
-msg = msg + """<html>
-	<head>
-	  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	if not dbs:
+		if len(p1_error):
+			strError = p1_error
+		elif len(p2.stderr.read()):
+			p2_error = p2.stderr.read()
+			strError = p2_error
+		else:
+			strError = "Database list is empty."
 
-	  <p>
-		<b> 
-			Job Start time: 
-		</b>
-		%s 
+		sendMail("Execution error: %s" % (strError) )
+		exit()
+
+	dblist = re.split("\s+", dbs)
+	jobStartTime = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+
+	msg = '''<p>
+	<b> 
+		Job Start time: 
+	</b>
+	%s 
 	</p>
-	
+
 	<table border='1' style='border: 1px solid gray;'>
-	<tr align='center' style='background-color: #D9D9D9;'>
-	   <td>
-		 <b>Database</b>
-	   </td>
-	   <td>
-		 <b>Size</b>
-	   </td>
-		<td>
-		 <b>SHA1</b>
-	   </td>
-	   <td>
-		 <b>Time</b>
-	   </td>
-	</tr> 
-""" % (jobStartTime)
+		<tr align='center' style='background-color: #D9D9D9;'>
+			<td>
+				<b>Database</b>
+			</td>
+			<td>
+				<b>Size</b>
+			</td>
+			<td>
+				<b>SHA1</b>
+			</td>
+			<td>
+				<b>Time</b>
+			</td>
+		</tr> 
+''' % (db_hostname, jobStartTime)
+		
+	for dbname in dblist:
+		if dbname: 
+			fdbname_zip = dbname + ".sql.gz"
+			strBkpStart = int(time.time())
+			cmd_mysqldump = "mysqldump --single-transaction --routines --quick -h %s -u %s -p%s -B %s " % (db_hostname, db_username, db_password, dbname)
+
+			if os.path.exists(fdbname_zip):
+				os.rename(fdbname_zip, fdbname_zip + ".old")
+
+			try:
+				oFid = gzip.open(fdbname_zip, 'wb')
+				sort = Popen(cmd_mysqldump, shell=True, stdout=PIPE)
+				oFid.writelines(sort.stdout)
+				oFid.close()
+				if os.path.exists(fdbname_zip + ".old"):
+					os.remove( fdbname_zip + ".old" )
+
+				if os.path.exists(fdbname_zip):
+					fgetsize = os.path.getsize(fdbname_zip)
+					uid = pwd.getpwnam(fUserid).pw_uid
+					gid = grp.getgrnam(fGroupid).gr_gid
+					os.chown(fdbname_zip, uid, gid )
+					dbsha1sum = getHash(fdbname_zip)
+					
+				else:
+					msg = msg + "<tr><td> %s </td><td colspan='2'>  Backup file not found! </td></tr>" % (dbname)
+					continue
+
+				dbsize = convertSize(fgetsize)
+				strBkpEnd = int(time.time())
+				d = divmod(strBkpEnd - strBkpStart, 86400)
+				h = divmod(d[1],3600)
+				m = divmod(h[1],60)
+				s = m[1]
+				timespend = '%d hours, %d minutes, %d seconds' % (h[0],m[0],s)
+
+				msg = msg + """
+					<tr>
+						<td> %s </td>
+						<td align='right'> %s </td>
+						<td> %s </td>
+						<td> %s </td>
+					</tr>
+					""" % (dbname, dbsize, dbsha1sum, timespend)
+
+			except IOError as err:
+				print "Error: %s" % (err)
+				os.remove( fdbname_zip )
+				os.rename(fdbname_zip + ".old", fdbname_zip)
+				continue		
+
+	jobEndTime = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+	msg = msg + '''
+			</table>
+			  <p>
+				<b> 
+					Job Finished: 
+				</b>
+				%s 
+			</p>
+		''' % (jobEndTime)
+
+	sendMail(msg)
 
 def convertSize(size):
 	size = ( size / 1024 ) 
@@ -92,83 +163,54 @@ def getHash(db_filename):
 			hasher.update(buf)
 			buf = afile.read(BLOCKSIZE)
 	return hasher.hexdigest()
-for dbname in dblist:
-	if dbname: 
-		fdbname_zip = dbname + ".sql.gz"
-		strBkpStart = int(time.time())
-		cmd_mysqldump = "mysqldump --single-transaction --routines --quick -h %s -u %s -p%s -B %s " % (db_hostname, db_username, db_password, dbname)
 
-		if os.path.exists(fdbname_zip):
-			os.rename(fdbname_zip, fdbname_zip + ".old")
+def sendMail(body):
 
-		try:
-			oFid = gzip.open(fdbname_zip, 'wb')
-			sort = Popen(cmd_mysqldump, shell=True, stdout=PIPE)
-			oFid.writelines(sort.stdout)
-			oFid.close()
-			os.remove( fdbname_zip + ".old" )
+	header = '''From: Backup Mysql <%s>
+To: <%s>
+MIME-Version: 1.0
+Subject: [Backup Mysql] - Mysql backup report
+Content-type: text/html
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
 
-			if os.path.exists(fdbname_zip):
-				fgetsize = os.path.getsize(fdbname_zip)
-				uid = pwd.getpwnam(fUserid).pw_uid
-				gid = grp.getgrnam(fGroupid).gr_gid
-				os.chown(fdbname_zip, uid, gid )
-				dbsha1sum = getHash(fdbname_zip)
-			else:
-				msg = msg + "<tr><td> %s </td><td colspan='2'>  Backup file not found! </td></tr>" % (dbname)
-				continue
+<body>
+  <b>Server Name:</b> %s <br><br>
 
-			dbsize = convertSize(fgetsize)
-			strBkpEnd = int(time.time())
-			d = divmod(strBkpEnd - strBkpStart, 86400)
-			h = divmod(d[1],3600)
-			m = divmod(h[1],60)
-			s = m[1]
-			timespend = '%d hours, %d minutes, %d seconds' % (h[0],m[0],s)
+''' % (smtp_sender, smtp_receivers, db_hostname)
 
-			msg = msg + """
-				<tr>
-					<td> %s </td>
-					<td align='right'> %s </td>
-					<td> %s </td>
-				</tr>
-				""" % (dbname, dbsize, dbsha1sum, timespend)
+	footer = "</body></html>"
 
-		except IOError as err:
-			print "Error: %s" % (err)
-			os.remove( fdbname_zip )
-			os.rename(fdbname_zip + ".old", fdbname_zip)
-			continue		
+	MailMsg = '''%s
+%s
+%s 
+''' % (header, body, footer)
 
-jobEndTime = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
-msg = msg + """
-		</table>
-		  <p>
-			<b> 
-				Job Finished: 
-			</b>
-			%s 
-		</p>
-	</html>
-	""" % (jobEndTime)
-
-try:
-	smtpObj = smtplib.SMTP(smtp_server_addr, smtp_server_port)
+	print MailMsg
 
 	try:
-		smtp_auth_user
-	except NameError:
-		smtp_auth_required = False
-	else:
-		if smtp_server_tls:
-			smtpObj.ehlo()
-			smtpObj.starttls()
-			smtpObj.ehlo
-		smtpObj.login(smtp_auth_user, smtp_auth_passwd)
+		smtpObj = smtplib.SMTP(smtp_server_addr, smtp_server_port)
 
-	smtpObj.sendmail(smtp_sender, smtp_receivers, msg)
-	smtpObj.close()
-	print "Successfully sent email"
+		try:
+			smtp_auth_user
+		except NameError:
+			smtp_auth_required = False
+		else:
+			if smtp_server_tls:
+				smtpObj.ehlo()
+				smtpObj.starttls()
+				smtpObj.ehlo
+			smtpObj.login(smtp_auth_user, smtp_auth_passwd)
 
-except Exception as e:
-	print "Error: unable to send email:  %s" % (e)
+		smtpObj.sendmail(smtp_sender, smtp_receivers, MailMsg)
+		smtpObj.close()
+		print "Successfully sent email"
+
+	except Exception as e:
+		print "Error: unable to send email:  %s" % (e)
+
+# Execute main function
+if __name__ == "__main__":
+    main()
