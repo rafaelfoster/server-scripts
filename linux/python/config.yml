@@ -1,0 +1,28 @@
+default:
+   smtp_sender: "bkp-mysql@example.com.br"
+   smtp_receivers: "rafaelfoster@example.com.br" # or a list ['user1@example.com', 'user2@example.com']
+   #smtp_receivers: "backupgc@example.com.br" # or a list ['user1@example.com', 'user2@example.com']
+   #smtp_auth_user: 'username@domain.com.br'
+   #smtp_auth_passwd: 'us3r_p@ss0rd'
+   smtp_server_addr: "smtp.example.com.br"
+   smtp_server_port: "25"
+   smtp_server_tls: False
+#  User and group that will owner the Backup file
+   fUserid: user_name
+   fGroupid: disk
+
+
+pato:
+   db_username: bkp_user
+   db_password: V3ry_$3cure_p@ssw0rd
+   db_hostname: server1.example.com.br
+   db_bkp_path: /var/backups/mysql
+   db_exeption: db_to_not_copy
+
+pato-zabbix:
+   db_username: bkp_user
+   db_password: V3ry_$3cure_p@ssw0rd
+   db_hostname: server2.example.com.br
+   db_bkp_path: /var/backups/mysql
+   db_filter  : dbs_to_filter
+#   db_exeption: 
