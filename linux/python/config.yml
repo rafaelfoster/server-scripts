@@ -18,6 +18,7 @@ pato:
    db_hostname: server1.example.com.br
    db_bkp_path: /var/backups/mysql
    db_exeption: db_to_not_copy
+   db_filter: dbs_to_filter
 
 pato-zabbix:
    db_username: bkp_user

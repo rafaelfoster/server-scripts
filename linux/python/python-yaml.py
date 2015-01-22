@@ -10,4 +10,5 @@ for section_key, section_value in yml_config.items():
 	print ""
 	for configkey, configvalue in section_value.items():
 		print "%s -> %s" % (configkey, configvalue)
+	print ""
 	print "----------------------------------------------------"
