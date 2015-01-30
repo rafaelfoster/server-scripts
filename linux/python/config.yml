@@ -1,29 +1,35 @@
 default:
-   smtp_sender: "bkp-mysql@example.com.br"
-   smtp_receivers: "rafaelfoster@example.com.br" # or a list ['user1@example.com', 'user2@example.com']
+   log_file_folder: /var/log/pyBackupMySql
+   smtp_server_addr: smtp.example.com.br
+   smtp_server_port: 25
+   smtp_server_tls: False # Or True (With first capital letter)
+   smtp_mail_subject: "[Backup Mysql] - Mysql backup report job:" # This %s will be replaced with job name
+   smtp_sender: bkp-mysql@example.com.br
+   smtp_receivers: rafaelgfoster@gmail.com # or a list ['user1@example.com', 'user2@example.com']
    #smtp_receivers: "backupgc@example.com.br" # or a list ['user1@example.com', 'user2@example.com']
    #smtp_auth_user: 'username@domain.com.br'
    #smtp_auth_passwd: 'us3r_p@ss0rd'
-   smtp_server_addr: "smtp.example.com.br"
-   smtp_server_port: "25"
-   smtp_server_tls: False
-#  User and group that will owner the Backup file
-   fUserid: user_name
+
+   # User and group that will owner the Backup file
+   fUserid: bacula
    fGroupid: disk
 
-
 pato:
+   db_bkp_path: /var/backups/mysql
    db_username: bkp_user
    db_password: V3ry_$3cure_p@ssw0rd
-   db_hostname: server1.example.com.br
-   db_bkp_path: /var/backups/mysql
-   db_exeption: db_to_not_copy
-   db_filter: dbs_to_filter
+   db_hostname: dbserver1.example.com.br
 
-pato-zabbix:
-   db_username: bkp_user
-   db_password: V3ry_$3cure_p@ssw0rd
-   db_hostname: server2.example.com.br
-   db_bkp_path: /var/backups/mysql
-   db_filter  : dbs_to_filter
-#   db_exeption: 
+   #  db_filter parameter is used to filter only the database names that you want to backup
+   #  It should be space separated.
+   #  Ex.: dbname1 dbname2 etc
+   db_filter: phplist performance_schema
+   db_exception: database1 database2
+
+# pato-zabbix:
+   # db_username: bkp_user
+   # db_password: V3ry_$3cure_p@ssw0rd
+   # db_hostname: server2.example.com.br
+   # db_bkp_path: /var/backups/mysql
+   # db_filter  : dbs_to_filter
+   # db_exeption: 
