@@ -14,7 +14,7 @@ import smtplib
 import datetime
 from subprocess import Popen, PIPE
 
-configFile = "config.yml"
+configFile = "/admin/scripts/config.yml"
 count = 0
 logfile = None
 jobname = None
@@ -73,7 +73,6 @@ def main():
 					continue
 			# End If db_hostname
 
-			_WriteOutput(dbs)
 			dblist = re.split("\s+", dbs)
 
 			jobStartTime = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
@@ -100,11 +99,20 @@ def main():
 						os.rename(fdbname_zip, fdbname_zip + ".old")
 
 					try:
+						_WriteOutput("Creating zip file...")
 						oFid = gzip.open(fdbname_zip, 'wb')
 						sort = Popen(cmd_mysqldump, shell=True, stdout=PIPE)
 						oFid.writelines(sort.stdout)
 						oFid.close()
+					except IOError as err:
+						_WriteOutput("Error: %s" % (err))
+						os.remove( fdbname_zip )
+						os.rename(fdbname_zip + ".old", fdbname_zip)
+						continue
+					else:
+						_WriteOutput("Writing dump to file: OK")
 						if os.path.exists(fdbname_zip + ".old"):
+							_WriteOutput("Deleting old backup file...")
 							os.remove( fdbname_zip + ".old" )
 
 						if os.path.exists(fdbname_zip):
@@ -113,8 +121,9 @@ def main():
 							gid = grp.getgrnam(fGroupid).gr_gid
 							os.chown(fdbname_zip, uid, gid )
 							dbsha1sum = getHash(fdbname_zip)
-							
+							_WriteOutput("Backup file size: %s " % (fgetsize) )
 						else:
+							_WriteOutput("Some error occur. Backup File was not found!")
 							msg = msg + "<tr><td> %s </td><td colspan='2'>  Backup file not found! </td></tr>" % (dbname)
 							continue
 
@@ -126,6 +135,7 @@ def main():
 						s = m[1]
 						timespend = '%d hours, %d minutes, %d seconds' % (h[0],m[0],s)
 
+						_WriteOutput("Backup Finished after " + timespend)
 						msg = msg + '''
 							<tr>
 								<td> %s </td>
@@ -134,11 +144,7 @@ def main():
 								<td> %s </td>
 							</tr>
 							''' % (dbname, dbsize, dbsha1sum, timespend)
-					except IOError as err:
-						_WriteOutput("Error: %s" % (err))
-						os.remove( fdbname_zip )
-						os.rename(fdbname_zip + ".old", fdbname_zip)
-						continue
+
 			jobEndTime = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
 			msg = msg + '''</table> <p><b> Job Finished: </b> %s </p> ''' % (jobEndTime)
 			sendMail(jobname, msg)
@@ -149,7 +155,7 @@ def main():
 	# End For section_key
 # End Main()
 def convertSize(size):
-	size = ( size / 1024 ) 
+	size = ( size / 1024 )
 	return "%s %s" % (size, "Kb")
 
 def getHash(db_filename):
