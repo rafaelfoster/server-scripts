@@ -13,8 +13,9 @@ import hashlib
 import smtplib
 import datetime
 from subprocess import Popen, PIPE
+import shlex
 
-configFile = "/admin/scripts/config.yml"
+configFile = "config.yml"
 count = 0
 logfile = None
 jobname = None
@@ -28,6 +29,7 @@ def main():
 	for section_key, section_value in yml_config.items():
 		global jobname
 		jobname = section_key
+		cmd_ssh_proxy = None
 		
 		tmpdebugVars = list();
 		for configkey, configvalue in section_value.items():
@@ -39,7 +41,10 @@ def main():
 			 _WriteOutput(strToLog)
 
 		if jobname != "default":
-			dbbkppath = db_bkp_path + "/" + db_hostname
+			hostname = db_hostname
+			if checkVar('db_ssh_addr'):
+				hostname = db_ssh_addr
+			dbbkppath = db_bkp_path + "/" + hostname
 			
 			_WriteOutput("Starting job: " + jobname)
 			_WriteOutput("Backup folder: " + db_bkp_path)
@@ -48,9 +53,19 @@ def main():
 				os.makedirs(dbbkppath)
 			os.chdir(dbbkppath)
 
+			if checkVar('db_ssh_addr') and checkVar('db_ssh_user'):
+				cmd_ssh_proxy = "ssh %s@%s" % (db_ssh_user, db_ssh_addr)
+
 			if db_hostname and db_username and db_password:
-				cmd_mysql_listdb = ['mysql','-h', db_hostname, '-u', db_username, '-p' + db_password, '-e', 'SHOW DATABASES;', '--skip-column-names']
-				p1 = Popen(cmd_mysql_listdb, stdout=PIPE, stderr=PIPE)
+				cmd_mysql_listdb = "mysql -h %s -u %s -p%s -e 'SHOW DATABASES;' --skip-column-names" % (db_hostname, db_username, db_password)
+
+			if cmd_ssh_proxy:
+				cmd = shlex.split(cmd_ssh_proxy) + [ cmd_mysql_listdb ]
+			else:
+				cmd = shlex.split(cmd_mysql_listdb)
+
+			if db_hostname and db_username and db_password:
+				p1 = Popen(cmd, stdout=PIPE, stderr=PIPE)
 				dbs, p1_error  = p1.communicate()
 
 				if checkVar("db_filter") == True:
@@ -91,6 +106,11 @@ def main():
 					fdbname_zip = dbname + ".sql.gz"
 
 					cmd_mysqldump = "mysqldump --single-transaction --routines --quick -h %s -u %s -p%s -B %s " % (db_hostname, db_username, db_password, dbname)
+					if cmd_ssh_proxy:
+						cmd = shlex.split(cmd_ssh_proxy) + [ cmd_mysqldump ]
+					else:
+						cmd = shlex.split(cmd_mysqldump)
+
 					_WriteOutput("Command to Exec: " + cmd_mysqldump)
 					strBkpStart = int(time.time())
 
@@ -101,7 +121,7 @@ def main():
 					try:
 						_WriteOutput("Creating zip file...")
 						oFid = gzip.open(fdbname_zip, 'wb')
-						sort = Popen(cmd_mysqldump, shell=True, stdout=PIPE)
+						sort = Popen(cmd, stdout=PIPE)
 						oFid.writelines(sort.stdout)
 						oFid.close()
 					except IOError as err:
@@ -144,6 +164,7 @@ def main():
 								<td> %s </td>
 							</tr>
 							''' % (dbname, dbsize, dbsha1sum, timespend)
+			# End for dbname
 
 			jobEndTime = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
 			msg = msg + '''</table> <p><b> Job Finished: </b> %s </p> ''' % (jobEndTime)

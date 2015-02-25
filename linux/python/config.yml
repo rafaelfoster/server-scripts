@@ -1,5 +1,5 @@
 default:
-   log_file_folder: /var/log/pyBackupMySql
+   log_file_folder: log/pyBackupMySql
    smtp_server_addr: smtp.example.com.br
    smtp_server_port: 25
    smtp_server_tls: False # Or True (With first capital letter)
@@ -14,22 +14,31 @@ default:
    fUserid: bacula
    fGroupid: disk
 
-pato:
-   db_bkp_path: /var/backups/mysql
+server1:
+   db_bkp_path: backups/mysql
    db_username: bkp_user
    db_password: V3ry_$3cure_p@ssw0rd
-   db_hostname: dbserver1.example.com.br
+   db_hostname: dbserver1.example.com
 
    #  db_filter parameter is used to filter only the database names that you want to backup
    #  It should be space separated.
    #  Ex.: dbname1 dbname2 etc
-   db_filter: phplist performance_schema
-   db_exception: database1 database2
+   #db_filter: phplist performance_schema
+   db_exception: bigschema
 
-# pato-zabbix:
-   # db_username: bkp_user
-   # db_password: V3ry_$3cure_p@ssw0rd
-   # db_hostname: server2.example.com.br
-   # db_bkp_path: /var/backups/mysql
-   # db_filter  : dbs_to_filter
+server1-big:
+   db_username: bkp_user
+   db_password: V3ry_$3cure_p@ssw0rd
+   db_hostname: dbserver1.example.com
+   db_bkp_path: backups/mysql
+   db_filter  : bigschema
    # db_exeption: 
+
+server2:
+   db_username: dbuser
+   db_password: dbuserpass
+   db_hostname: localhost
+   db_ssh_addr: server2.example.com
+   db_ssh_user: mysql
+   db_bkp_path: backups/mysql
+   db_filter  : myschema
