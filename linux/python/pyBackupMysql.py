@@ -29,9 +29,6 @@ def main():
 	strError = list()
 	stream = open(configFile, 'r')
 	yml_config = yaml.load(stream)
-	
-
-	print yml_config
 
 	for section_key, section_value in yml_config.items():
 		global jobname
