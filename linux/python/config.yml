@@ -6,6 +6,7 @@ default:
    smtp_mail_subject: "[Backup Mysql] - Mysql backup report job:" # This %s will be replaced with job name
    smtp_sender: bkp-mysql@example.com.br
    smtp_receivers: rafaelgfoster@gmail.com # or a list ['user1@example.com', 'user2@example.com']
+
    #smtp_receivers: "backupgc@example.com.br" # or a list ['user1@example.com', 'user2@example.com']
    #smtp_auth_user: 'username@domain.com.br'
    #smtp_auth_passwd: 'us3r_p@ss0rd'
@@ -14,31 +15,36 @@ default:
    fUserid: bacula
    fGroupid: disk
 
-server1:
-   db_bkp_path: backups/mysql
-   db_username: bkp_user
+   
+########################################################
+# This define de name of the job that will be used to identify it
+job-name:
+
+   # db_bkp_path parameter is used to indicate the place where the backups will be stored
+   db_bkp_path: /var/backup
+   # db_username parameter is used to indicate the user that can connect to the mysql server
+   db_username: bkp_username
+   
+   # db_password parameter is used to indicate the password of the user above
    db_password: V3ry_$3cure_p@ssw0rd
-   db_hostname: dbserver1.example.com
+   
+   # db_hostname parameter is used to indicate the hostname of the mysql server
+   db_hostname: mysql_server
 
    #  db_filter parameter is used to filter only the database names that you want to backup
    #  It should be space separated.
    #  Ex.: dbname1 dbname2 etc
-   #db_filter: phplist performance_schema
-   db_exception: bigschema
+   # db_filter: phplist performance_schema
+   db_filter: dbname1
+   
+   #  db_exception parameter is used to except databases that you don't want to backup
+   #  It should be space separated.
+   #  Ex.: dbname1 dbname2 etc
+   db_exception: dbname1
 
-server1-big:
-   db_username: bkp_user
-   db_password: V3ry_$3cure_p@ssw0rd
-   db_hostname: dbserver1.example.com
-   db_bkp_path: backups/mysql
-   db_filter  : bigschema
-   # db_exeption: 
+   #  db_ssh_addr parameter is used to indicate if it's needed some SSH proxy (in the case if you are not in the same network that the server or you can't connect direct to mysql)
+   db_ssh_addr: ssh-hostname.example.com.br
 
-server2:
-   db_username: dbuser
-   db_password: dbuserpass
-   db_hostname: localhost
-   db_ssh_addr: server2.example.com
-   db_ssh_user: mysql
-   db_bkp_path: backups/mysql
-   db_filter  : myschema
+   #  db_ssh_user parameter is used to indicate the user that will connect to SSH proxy 
+   #  Note: There's no db_ssh_password because it's secureless, to use SSH Proxy you should connect using private key (Google for 'connect ssh using private key')
+   db_ssh_user: root
