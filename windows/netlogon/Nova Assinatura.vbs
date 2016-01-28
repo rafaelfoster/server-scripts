@@ -24,13 +24,13 @@ With objUser
 	If strCargoDepartamento = "" Then
 		Wscript.Quit
 	End If
-	strPhone = InputBox("Digite o telefone completo do seu setor:" & Chr(13) & "(Se não tiver, apenas deixe em branco ou clique em cancelar)", "Nova assinatura de Email", "+55 (13) 32")
+	strPhone = InputBox("Digite o telefone completo do seu setor:" & Chr(13) & "(Se nÃ£o tiver, apenas deixe em branco ou clique em cancelar)", "Nova assinatura de Email", "+55 (13) 32")
 	If strPhone <> "" Then
 		strPhone = Chr(11) & "Tel. " & strPhone
 	Else
 		strPhone = Chr(11)
 	End If
-	strFax = InputBox("Digite o Fax do seu setor" & Chr(13) & "(Se não tiver, apenas deixe em branco ou clique em cancelar)", "Nova assinatura de Email", "+55 (13) 32")
+	strFax = InputBox("Digite o Fax do seu setor" & Chr(13) & "(Se nÃ£o tiver, apenas deixe em branco ou clique em cancelar)", "Nova assinatura de Email", "+55 (13) 32")
 	If strFax <> "" Then
 		If strPhone <> Chr(11) Then
 			strFax = Chr(32) & Chr(124) & Chr(32) & "Fax " & strFax
@@ -38,27 +38,27 @@ With objUser
 			strFax = "Fax " & strFax
 		End If
 	End If
-	strNextel = InputBox("Digite o seu Telefone Celular Empresarial e/ou Rádio" & Chr(13) & "(Se não tiver, apenas deixe em branco ou clique em cancelar)", "Nova assinatura de Email", "+55 (13) / 55*")
+	strNextel = InputBox("Digite o seu Telefone Celular Empresarial e/ou RÃ¡dio" & Chr(13) & "(Se nÃ£o tiver, apenas deixe em branco ou clique em cancelar)", "Nova assinatura de Email", "+55 (13) / 55*")
 	If strNextel <> "" Then
 		If strPhone <> Chr(11) Then
 			If strFax <> "" Then
-				strNextel = Chr(11) & "Rádio/Cel. " & strNextel
+				strNextel = Chr(11) & "RÃ¡dio/Cel. " & strNextel
 			Else
-				strNextel = Chr(32) & Chr(124) & Chr(32) & "Rádio/Cel. " & strNextel
+				strNextel = Chr(32) & Chr(124) & Chr(32) & "RÃ¡dio/Cel. " & strNextel
 			End If
 		ElseIf strFax <> "" Then
-			strNextel = Chr(32) & Chr(124) & Chr(32) & "Rádio/Cel. " & strNextel
+			strNextel = Chr(32) & Chr(124) & Chr(32) & "RÃ¡dio/Cel. " & strNextel
 		Else
-			strNextel = "Rádio/Cel. " & strNextel
+			strNextel = "RÃ¡dio/Cel. " & strNextel
 		End If
 	End If
 	strMail = Chr(11) & .EmailAddress
 End With
 
-'strCompany = "GRUPO RODRIMAR - 70 ANOS - "
+'strCompany = "GRUPO Exemplo - 70 ANOS - "
 If strId=7 Then
 'strlinha1 = Chr(34) & "Simplificando Processos. Ampliando Resultados." & Chr(34)
-strlinha2 = "Preserve o meio ambiente praticando sua responsabilidade. Imprima apenas se for necessário."
+strlinha2 = "Preserve o meio ambiente praticando sua responsabilidade. Imprima apenas se for necessÃ¡rio."
 Else
 'strlinha1 = Chr(34) & "Simplifying Processes. Heightening Results." & Chr(34)
 strlinha2 = "Preserve the environment practicing your responsibility. Print only what you need most."
@@ -107,7 +107,7 @@ With objSelection
 	'objSelection.Font.Shadow = True
 	'objSelection.Font.Color = RGB(0, 0, 128)
 	'objSelection.TypeText strCompany
-	'objDoc.Hyperlinks.Add objSelection.Range, "http://www.rodrimar.com.br/", , , "http://www.rodrimar.com.br/"
+	'objDoc.Hyperlinks.Add objSelection.Range, "http://www.Exemplo.com.br/", , , "http://www.Exemplo.com.br/"
 	'objSelection.Font.Bold = True
 	
 	.TypeText Chr(11)
@@ -116,7 +116,7 @@ With objSelection
 	'objSelection.Font.Color = RGB(128, 0, 0)
 	'objSelection.Font.Bold = True	
 	'objSelection.TypeText strlinha1
-	shape = objSelection.InlineShapes.AddPicture("\\rodrimar.com.br\Public\Rodrimar\signature.jpg")
+	shape = objSelection.InlineShapes.AddPicture("\\Exemplo.com.br\Public\Exemplo\signature.jpg")
 	shape.Width = 100
 	shape.Height = 30
 
@@ -130,8 +130,8 @@ With objSelection
 End With
 
 Set objSelection = objDoc.Range()
-objSignatureEntries.Add "Rodrimar", objSelection
-objSignatureObject.NewMessageSignature = "Rodrimar"
-objSignatureObject.ReplyMessageSignature = "Rodrimar"
+objSignatureEntries.Add "Exemplo", objSelection
+objSignatureObject.NewMessageSignature = "Exemplo"
+objSignatureObject.ReplyMessageSignature = "Exemplo"
 objDoc.Saved = True
 objword.Quit
