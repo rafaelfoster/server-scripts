@@ -44,10 +44,10 @@ if ( inStr(LCase(SysVersion),"server") <> 0 ) Then
 End If
 
 ' Variaveis dos caminhos de instalação do Agente e seus plugins
-strlatestOCSInstallFile="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\ocspackage.exe"
-strlatestOCSDefaultInstallFile="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\ocspackage_default.exe"
-strOCSInstallPluginsPath="\\rodrimar.com.br\TI\Utils\Suporte\Programas\OCS\latest\Plugins"
-strOCSInstallLog="\\rodrimar.com.br\TI\AD-MGT\Logs\Log_Instalacao_OCS\"
+strlatestOCSInstallFile="\\example.com.br\TI\Utils\Suporte\Programas\OCS\latest\ocspackage.exe"
+strlatestOCSDefaultInstallFile="\\example.com.br\TI\Utils\Suporte\Programas\OCS\latest\ocspackage_default.exe"
+strOCSInstallPluginsPath="\\example.com.br\TI\Utils\Suporte\Programas\OCS\latest\Plugins"
+strOCSInstallLog="\\example.com.br\TI\AD-MGT\Logs\Log_Instalacao_OCS\"
 
 ' Define o nome do arquivo de Log
 strCurrentInstallLog = strOCSInstallLog & "log_installOCS_" & "(" & strComputerName & ").log"
@@ -58,7 +58,7 @@ strCurrentInstallLog = strOCSInstallLog & "log_installOCS_" & "(" & strComputerN
 
 ' Esta é a linha de comando padrao para uma instalacao silenciosa
 ' strOCSInstallCMDArguments="/S /NOSPLASH /UPGRADE /NO_SYSTRAY /NOW /SERVER=http://servidor_ocs/ocsinventory /user=usuario_ocs /PWD=senha_do_ocs /TAG=123456789"
-strOCSInstallCMDArguments="/S /NOSPLASH /UPGRADE /NO_SYSTRAY /NOW /SERVER=http://ocs.rodrimar.com.br/ocsinventory /user=ocs /PWD=r0dr!m@rocs"
+strOCSInstallCMDArguments="/S /NOSPLASH /UPGRADE /NO_SYSTRAY /NOW /SERVER=http://ocs.example.com.br/ocsinventory /user=ocs /PWD=r0dr!m@rocs"
 
 ' --------------------------------------------------------------------------------------------------------------
 ' Verificar se o diretorio de instalacao padrao OCS existe
