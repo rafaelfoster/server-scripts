@@ -2,7 +2,6 @@
 ' Baixe o utilitário certutil para firefox em:
 ' https://www.dropbox.com/s/1mwpmewsp92pg7h/firefox_certutil.zip?dl=0
 
-
 On Error Resume Next
 
 'Aguardar 1 minuto antes de iniciar
@@ -32,8 +31,8 @@ strDBFileLocation = "cert8.db"
 Log_Folder    = strUserPath
 Log_File_Name = "Log_Certificado_" & strUserName & ".txt"
 
-CertutilPath      = "C:\Users\Rafael Foster\Desktop\firefox_add-certs\firefox_add-certs\bin"
-certFile          = "C:\Users\Rafael Foster\Desktop\Fortinet_CA_SSL.cer"
+CertutilPath      = "\\server.com.br\share\certutil\bin"
+certFile          = "\\server.com.br\share\Fortinet_CA_SSL.cer"
 certName          = "Fortinet SSL CA"
 
 '--------------------------------------------
