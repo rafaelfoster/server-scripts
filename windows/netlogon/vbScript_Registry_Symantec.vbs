@@ -19,7 +19,7 @@ strComputer = "."
 strUserName = wshShell.ExpandEnvironmentStrings( "%USERNAME%" )
 strSessionName = wshShell.ExpandEnvironmentStrings( "%SESSIONNAME%" )
 strComputerName = wshShell.ExpandEnvironmentStrings( "%COMPUTERNAME%" )
-Log_Symantec = "\\rodrimar.com.br\Ti\AD-MGT\Logs\Log_Symantec\Log_Symantec.csv" 
+Log_Symantec = "\\SERVER\FOLDER\Logs\Log_Symantec\Log_Symantec.csv" 
 
 	if ( inStr(LCase(strSessionName),"rdp") <> 0 OR inStr(LCase(strComputerName),"ctx") <> 0  OR inStr(LCase(strComputerName),"rod-") <> 0 ) Then
 		Wscript.Quit
